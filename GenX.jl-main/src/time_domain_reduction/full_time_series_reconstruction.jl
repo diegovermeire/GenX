@@ -13,6 +13,7 @@ Internal function for performing the reconstruction. This function returns a Dat
 """
 function full_time_series_reconstruction(
         path::AbstractString, setup::Dict, DF::DataFrame)
+    println("DEBUGGING IN full_time_series_reconstruction, the path passed to findlast is: ", path)
     if setup["MultiStage"] == 1
         dirs = splitpath(path)
         case = joinpath(dirs[.!occursin.("result", dirs)])  # Get the case folder without the "results" folder(s)
@@ -20,6 +21,8 @@ function full_time_series_reconstruction(
         TDRpath = joinpath(case, "inputs", string("inputs_p", cur_stage),
             setup["TimeDomainReductionFolder"])
     else
+        println("DEBUGGING IN full_time_series_reconstruction, the path passed to findlast is: ", path)
+
         case = path[1:findlast('/', path)]
         TDRpath = joinpath(case, setup["TimeDomainReductionFolder"])
     end
