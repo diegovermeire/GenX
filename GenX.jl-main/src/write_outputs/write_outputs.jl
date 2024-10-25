@@ -69,7 +69,8 @@ function write_outputs(EP::Model, path::AbstractString, setup::Dict, inputs::Dic
 
     if output_settings_d["WriteCapacity"] || output_settings_d["WriteNetRevenue"]
         elapsed_time_capacity = @elapsed dfCap = write_capacity(path, inputs, setup, EP)
-        println("Time elapsed for writing capacity is")
+        println("Time elapsed for writing capacity is & given path is" )
+        println(path)
         println(elapsed_time_capacity)
     end
 
