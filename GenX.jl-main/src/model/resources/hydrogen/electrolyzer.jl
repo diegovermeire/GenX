@@ -118,14 +118,16 @@ function electrolyzer!(EP::Model, inputs::Dict, setup::Dict)
         begin
             ## Maximum ramp up between consecutive hours
             [y in ELECTROLYZERS, t in 1:T],
-            EP[:vUSE][y, t] - EP[:vUSE][y, hoursbefore(p, t, 1)] <=
+            EP[:vUSE][y, t] - EP[:vUSE][y, hours_before_HE(t, 1, inputs, p)] <=
             ramp_up_fraction(gen[y]) * EP[:eTotalCap][y]
 
             ## Maximum ramp down between consecutive hours
             [y in ELECTROLYZERS, t in 1:T],
-            EP[:vUSE][y, hoursbefore(p, t, 1)] - EP[:vUSE][y, t] <=
+            EP[:vUSE][y, hours_before_HE(t, 1, inputs, p)] - EP[:vUSE][y, t] <=
             ramp_down_fraction(gen[y]) * EP[:eTotalCap][y]
         end)
+
+        
 
     ## Minimum and maximum power output constraints (Constraints #3-4)
     # Electrolyzers currently do not contribute to operating reserves, so there is not

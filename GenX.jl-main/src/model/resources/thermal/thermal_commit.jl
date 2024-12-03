@@ -186,7 +186,7 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
     # rampup constraints
     @constraint(EP, [y in THERM_COMMIT, t in 1:T],
         EP[:vP][y, t] - EP[:vP][y, hoursbefore(p, t, 1)] + regulation_term[y, t] +
-        reserves_term[y, t]<=ramp_up_fraction(gen[y]) * cap_size(gen[y]) *
+        reserves_term[y, t]<= heterogenous_ramp_small_variance(ramp_up_fraction(gen[y]),inputs["Rel_TimeStep"][t])  * cap_size(gen[y]) *
                              (EP[:vCOMMIT][y, t] - EP[:vSTART][y, t])
                              +
                              min(inputs["pP_Max"][y, t],
@@ -199,7 +199,7 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
     @constraint(EP, [y in THERM_COMMIT, t in 1:T],
         EP[:vP][y, hoursbefore(p, t, 1)] - EP[:vP][y, t] - regulation_term[y, t] +
         reserves_term[y,
-            hoursbefore(p, t, 1)]<=ramp_down_fraction(gen[y]) * cap_size(gen[y]) *
+            hoursbefore(p, t, 1)]<= heterogenous_ramp_small_variance(ramp_down_fraction(gen[y]),inputs["Rel_TimeStep"][hoursbefore(p, t, 1)]) * cap_size(gen[y]) *
                                    (EP[:vCOMMIT][y, t] - EP[:vSTART][y, t])
                                    -
                                    min_power(gen[y]) * cap_size(gen[y]) * EP[:vSTART][y, t]
@@ -231,14 +231,14 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
     Up_Time[THERM_COMMIT] .= Int.(floor.(up_time.(gen[THERM_COMMIT])))
     @constraint(EP, [y in THERM_COMMIT, t in 1:T],
         EP[:vCOMMIT][y,
-            t]>=sum(EP[:vSTART][y, u] for u in hoursbefore(p, t, 0:(Up_Time[y] - 1))))
+            t]>=sum(EP[:vSTART][y, u] for u in (iterate_backward(inputs, t, Up_Time[y]):t)))
 
     Down_Time = zeros(Int, G)
     Down_Time[THERM_COMMIT] .= Int.(floor.(down_time.(gen[THERM_COMMIT])))
     @constraint(EP, [y in THERM_COMMIT, t in 1:T],
         EP[:eTotalCap][y] / cap_size(gen[y]) -
         EP[:vCOMMIT][y,
-            t]>=sum(EP[:vSHUT][y, u] for u in hoursbefore(p, t, 0:(Down_Time[y] - 1))))
+            t]>=sum(EP[:vSHUT][y, u] for u in (iterate_backward(inputs, t, Down_Time[y]):t)))
 
     ## END Constraints for thermal units subject to integer (discrete) unit commitment decisions
     if !isempty(ids_with_maintenance(gen))

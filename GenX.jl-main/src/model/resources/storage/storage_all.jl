@@ -107,15 +107,16 @@ function storage_all!(EP::Model, inputs::Dict, setup::Dict)
     else
         CONSTRAINTSET = STOR_ALL
     end
+   
     @constraint(EP,
         cSoCBalStart[t in START_SUBPERIODS, y in CONSTRAINTSET],
         EP[:vS][y,
             t]==
-        EP[:vS][y, t + hours_per_subperiod - 1] -
-        (1 / efficiency_down(gen[y]) * EP[:vP][y, t])
+        EP[:vS][y, t + index_toa_upwards(inputs, t, hours_per_subperiod)] -
+        (1 / efficiency_down(gen[y]) * EP[:vP][y, t] * inputs["Rel_TimeStep"][t])
         +
-        (efficiency_up(gen[y]) * EP[:vCHARGE][y, t]) -
-        (self_discharge(gen[y]) * EP[:vS][y, t + hours_per_subperiod - 1]))
+        (efficiency_up(gen[y]) * EP[:vCHARGE][y, t] * inputs["Rel_TimeStep"][t]) -
+        (self_discharge(gen[y]) * EP[:vS][y, t + index_toa_upwards(inputs, t, hours_per_subperiod)])* inputs["Rel_TimeStep"][t])
 
     @constraints(EP,
         begin
@@ -125,9 +126,9 @@ function storage_all!(EP::Model, inputs::Dict, setup::Dict)
             # energy stored for the next hour
             cSoCBalInterior[t in INTERIOR_SUBPERIODS, y in STOR_ALL],
             EP[:vS][y, t] ==
-            EP[:vS][y, t - 1] - (1 / efficiency_down(gen[y]) * EP[:vP][y, t]) +
-            (efficiency_up(gen[y]) * EP[:vCHARGE][y, t]) -
-            (self_discharge(gen[y]) * EP[:vS][y, t - 1])
+            EP[:vS][y, t - 1] - (1 / efficiency_down(gen[y]) * EP[:vP][y, t]* inputs["Rel_TimeStep"][t]) +
+            (efficiency_up(gen[y]) * EP[:vCHARGE][y, t]* inputs["Rel_TimeStep"][t]) -
+            (self_discharge(gen[y]) * EP[:vS][y, t - 1]* inputs["Rel_TimeStep"][t])
         end)
 
     # Hourly matching constraints
@@ -155,7 +156,7 @@ function storage_all!(EP::Model, inputs::Dict, setup::Dict)
                     EP[:vP][y, t] + EP[:vCAPRES_discharge][y, t] <= EP[:eTotalCap][y]
                     [y in STOR_ALL, t = 1:T],
                     EP[:vP][y, t] + EP[:vCAPRES_discharge][y, t] <=
-                    EP[:vS][y, hoursbefore(hours_per_subperiod, t, 1)] *
+                    EP[:vS][y, hours_before_HE(t, 1, inputs, hours_per_subperiod)] *
                     efficiency_down(gen[y])
                 end)
         else
@@ -163,10 +164,11 @@ function storage_all!(EP::Model, inputs::Dict, setup::Dict)
                 begin
                     [y in STOR_ALL, t = 1:T], EP[:vP][y, t] <= EP[:eTotalCap][y]
                     [y in STOR_ALL, t = 1:T],
-                    EP[:vP][y, t] <=
-                    EP[:vS][y, hoursbefore(hours_per_subperiod, t, 1)] *
+                    EP[:vP][y, t] * inputs["Rel_TimeStep"][t] <=
+                    EP[:vS][y, hours_before_HE(t, 1, inputs, hours_per_subperiod)] *
                     efficiency_down(gen[y])
                 end)
+                
         end
     end
 
@@ -261,9 +263,11 @@ function storage_all_operational_reserves!(EP::Model, inputs::Dict, setup::Dict)
         [y in STOR_REG, t in 1:T],
         efficiency_up(gen[y]) *
         (vCHARGE[y, t] +
-         vREG_charge[y, t])<=eTotalCapEnergy[y] - vS[y, hoursbefore(p, t, 1)])
+         vREG_charge[y, t])<=eTotalCapEnergy[y] - vS[y,  hours_before_HE(t, 1, inputs, p)])
     # Note: maximum charge rate is also constrained by maximum charge power capacity, but as this differs by storage type,
     # this constraint is set in functions below for each storage type
+
+   
 
     expr = extract_time_series_to_expression(vP, STOR_ALL)
     add_similar_to_expression!(expr[STOR_REG, :], vREG_discharge[STOR_REG, :])
@@ -277,5 +281,5 @@ function storage_all_operational_reserves!(EP::Model, inputs::Dict, setup::Dict)
     # Maximum discharging rate and contribution to reserves up must be less than available stored energy in prior period
     @constraint(EP,
         [y in STOR_ALL, t in 1:T],
-        expr[y, t]<=vS[y, hoursbefore(p, t, 1)] * efficiency_down(gen[y]))
+        expr[y, t]<=vS[y, hours_before_HE(t, 1, inputs, p)] * efficiency_down(gen[y]))
 end

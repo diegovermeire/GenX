@@ -35,7 +35,7 @@ function load_demand_data!(setup::Dict, path::AbstractString, inputs::Dict)
     my_dir = get_systemfiles_path(setup, TDR_directory, path)
 
     demand_in = get_demand_dataframe(my_dir)
-
+    
     as_vector(col::Symbol) = collect(skipmissing(demand_in[!, col]))
 
     # Number of time steps (periods)
@@ -48,28 +48,79 @@ function load_demand_data!(setup::Dict, path::AbstractString, inputs::Dict)
     inputs["SEG"] = SEG
     Z = inputs["Z"]   # Number of zones
 
-    inputs["omega"] = zeros(Float64, T) # weights associated with operational sub-period in the model - sum of weight = 8760
+
     # Weights for each period - assumed same weights for each sub-period within a period
     inputs["Weights"] = as_vector(:Sub_Weights) # Weights each period
+    
 
-    # Total number of periods and subperiods
-    inputs["REP_PERIOD"] = convert(Int16, as_vector(:Rep_Periods)[1])
-    inputs["H"] = convert(Int64, as_vector(:Timesteps_per_Rep_Period)[1])
+    ############### Heterogenous Timesteps ###############
+    #Import 
+    if setup["HeterogenousTimesteps"] == 1
+        inputs["REP_PERIOD"] = convert(Int16, as_vector(:Rep_Periods)[1])
+        inputs["omega"] = demand_in[:, "omega"]  # Access columns in Julia using `:` for rows
+        inputs["Rel_TimeStep"] = demand_in[:, "Rel_TimeStep"]
+        inputs["hours_per_subperiod"] = convert(Int64, as_vector(:Timesteps_per_Rep_Period)[1])
+        inputs["H"] = convert(Int64, as_vector(:Timesteps_per_Rep_Period)[1])
 
-    # Creating sub-period weights from weekly weights
-    for w in 1:inputs["REP_PERIOD"]
-        for h in 1:inputs["H"]
-            t = inputs["H"] * (w - 1) + h
-            inputs["omega"][t] = inputs["Weights"][w] / inputs["H"]
+        counter = 0  # Counter to track time steps
+        status = 0  # 0 if the end of a representative period has been reached, 1 otherwise
+        START_SUBPERIODS = Int[]  # Initialize an empty array to store indices of starting subperiods
+        INTERIOR_SUBPERIODS = Int[]  # Initialize an empty array to store indices of interior subperiods
+        hours_per_subperiod = convert(Int64, as_vector(:Timesteps_per_Rep_Period)[1])
+        tot_time_indices = T
+
+        for t in 1:tot_time_indices  # Iterate from 1 to tot_time_indices
+            counter += inputs["Rel_TimeStep"][t]
+            if counter == 1 || status == 0
+                push!(START_SUBPERIODS, t)  # Add to start subperiod list
+                status = 1
+            elseif counter != 1 && counter < hours_per_subperiod
+                push!(INTERIOR_SUBPERIODS, t)  # Add to interior subperiod list
+            elseif counter == hours_per_subperiod
+                push!(INTERIOR_SUBPERIODS, t)
+                counter = 0
+                status = 0
+            elseif counter > hours_per_subperiod && status == 1
+                push!(INTERIOR_SUBPERIODS, t)
+                counter = 0
+                status = 0
+            else
+                println("Unexpected case")
+            end
         end
+
+        inputs["START_SUBPERIODS"] = START_SUBPERIODS # set of indexes for all time periods that start a subperiod (e.g. sample day/week)
+        inputs["INTERIOR_SUBPERIODS"] = INTERIOR_SUBPERIODS # set of indexes for all time periods that do not start a subperiod
+
     end
+    ######################################################
 
-    # Create time set steps indicies
-    inputs["hours_per_subperiod"] = div.(T, inputs["REP_PERIOD"]) # total number of hours per subperiod
-    hours_per_subperiod = inputs["hours_per_subperiod"] # set value for internal use
+    ############### Homogenous Timesteps ###############
+    if setup["HeterogenousTimesteps"] == 0
 
-    inputs["START_SUBPERIODS"] = 1:hours_per_subperiod:T # set of indexes for all time periods that start a subperiod (e.g. sample day/week)
-    inputs["INTERIOR_SUBPERIODS"] = setdiff(1:T, inputs["START_SUBPERIODS"]) # set of indexes for all time periods that do not start a subperiod
+        inputs["omega"] = zeros(Float64, T) # weights associated with operational sub-period in the model - sum of weight = 8760
+        inputs["Rel_TimeStep"] = ones(Float64, T)
+        
+        # Total number of periods and subperiods
+        inputs["REP_PERIOD"] = convert(Int16, as_vector(:Rep_Periods)[1])
+        inputs["H"] = convert(Int64, as_vector(:Timesteps_per_Rep_Period)[1])
+
+        #Creating sub-period weights from weekly weights
+        for w in 1:inputs["REP_PERIOD"]
+            for h in 1:inputs["H"]
+                t = inputs["H"] * (w - 1) + h
+                inputs["omega"][t] = inputs["Weights"][w] / inputs["H"]
+            end
+        end
+
+        # Create time set steps indicies
+        inputs["hours_per_subperiod"] = div.(T, inputs["REP_PERIOD"]) # total number of hours per subperiod
+        hours_per_subperiod = inputs["hours_per_subperiod"] # set value for internal use
+
+        inputs["START_SUBPERIODS"] = 1:hours_per_subperiod:T # set of indexes for all time periods that start a subperiod (e.g. sample day/week)
+        inputs["INTERIOR_SUBPERIODS"] = setdiff(1:T, inputs["START_SUBPERIODS"]) # set of indexes for all time periods that do not start a subperiod
+    end
+    ######################################################
 
     # Demand in MW for each zone
     scale_factor = setup["ParameterScale"] == 1 ? ModelScalingFactor : 1
@@ -93,7 +144,7 @@ end
 # ensure that the length of demand data exactly matches
 # the number of subperiods times their length
 # and that the number of subperiods equals the list of provided weights
-function validatetimebasis(inputs::Dict)
+function validatetimebasis(inputs::Dict, setup::Dict)
     println("Validating time basis")
     demand_length = size(inputs["pD"], 1)
     generators_variability_length = size(inputs["pP_Max"], 2)
@@ -104,7 +155,18 @@ function validatetimebasis(inputs::Dict)
     T = inputs["T"]
     hours_per_subperiod = inputs["hours_per_subperiod"]
     number_of_representative_periods = inputs["REP_PERIOD"]
-    expected_length_1 = hours_per_subperiod * number_of_representative_periods
+
+    ############### Homogenous Timesteps ###############
+    if setup["HeterogenousTimesteps"] == 0
+        expected_length_1 = hours_per_subperiod * number_of_representative_periods
+    end
+    ######################################################
+
+    ############### Heterogenous Timesteps ###############
+    if setup["HeterogenousTimesteps"] == 1
+        expected_length_1 = size(inputs["Rel_TimeStep"], 1)
+    end
+    ######################################################
 
     H = inputs["H"]
     expected_length_2 = H * number_of_representative_periods
@@ -113,8 +175,8 @@ function validatetimebasis(inputs::Dict)
         demand_length,
         generators_variability_length,
         fuel_costs_length,
-        expected_length_1,
-        expected_length_2]
+        expected_length_1]
+        # expected_length_2]
 
     allequal(x) = all(y -> y == x[1], x)
     ok = allequal(check_equal)
@@ -133,6 +195,7 @@ function validatetimebasis(inputs::Dict)
                      (generators_variability.csv)
                  Fuel costs length:                  $fuel_costs_length
                      (fuels_data.csv)
+                Expected length 1:                  $expected_length_1
 
                  Metrics from demand_data.csv [load_data.csv]:
                  Detected time steps:            $T

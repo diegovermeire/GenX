@@ -15,7 +15,7 @@ function write_power_balance(path::AbstractString, inputs::Dict, setup::Dict, EP
         "Flexible_Demand_Defer", "Flexible_Demand_Stasify",
         "Demand_Response", "Nonserved_Energy",
         "Transmission_NetExport", "Transmission_Losses",
-        "Demand"]
+        "Demand", "Storage_State_of_Charge"]
     if !isempty(ELECTROLYZER)
         push!(Com_list, "Electrolyzer_Consumption")
     end
@@ -58,12 +58,19 @@ function write_power_balance(path::AbstractString, inputs::Dict, setup::Dict, EP
             powerbalance[(z - 1) * L + 9, :] = -(value.(EP[:eLosses_By_Zone][z, :]))
         end
         powerbalance[(z - 1) * L + 10, :] = (((-1) * inputs["pD"][:, z]))' # Transpose
+        ############## DEBUGGING: Incorporate the State of Charge [MWh] in the power_balance.csv file ############################
+        if !isempty(intersect(resources_in_zone_by_rid(gen, z), STOR_ALL))
+            STOR_ALL_ZONE = intersect(resources_in_zone_by_rid(gen, z), STOR_ALL)
+            powerbalance[(z - 1) * L + 11, :] = sum(Array(value.(EP[:vS][STOR_ALL_ZONE, :])), dims = 1)
+        end
+        ###########################################################################################################################
         if !isempty(ELECTROLYZER)
             ELECTROLYZER_ZONE = intersect(resources_in_zone_by_rid(gen, z), ELECTROLYZER)
-            powerbalance[(z - 1) * L + 11, :] = (-1) * sum(
+            powerbalance[(z - 1) * L + 12, :] = (-1) * sum(
                 value.(EP[:vUSE][ELECTROLYZER_ZONE,:].data),
                 dims = 1)
         end
+
         # VRE storage discharge and charge
         if !isempty(intersect(resources_in_zone_by_rid(gen, z), VRE_STOR))
             VS_ALL_ZONE = intersect(resources_in_zone_by_rid(gen, z), inputs["VS_STOR"])

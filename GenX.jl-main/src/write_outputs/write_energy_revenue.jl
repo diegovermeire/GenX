@@ -20,6 +20,13 @@ function write_energy_revenue(path::AbstractString, inputs::Dict, setup::Dict, E
         AnnualSum = Array{Float64}(undef, G))
     energyrevenue = zeros(G, T)
     price = locational_marginal_price(EP, inputs, setup)
+
+    # println("Debugging in write_energy_revenue")
+    # println("gen", gen)
+    # println("zone_id.(gen)", zones)
+    # println("[zone_id.(gen[FLEX]), :]", [zone_id.(gen[NONFLEX]), :])
+    # println("transpose(price)", transpose(price)[1, :])
+
     energyrevenue[NONFLEX, :] = value.(EP[:vP][NONFLEX, :]) .*
                                 transpose(price)[zone_id.(gen[NONFLEX]), :]
     if !isempty(FLEX)

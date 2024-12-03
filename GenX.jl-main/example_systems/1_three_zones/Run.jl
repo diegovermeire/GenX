@@ -1,3 +1,3 @@
+ENV["GENX_PRECOMPILE"] = "false"
 using GenX
-
-run_genx_case!(dirname(@__FILE__))
+GenX.run_genx_case!(dirname(@__FILE__))

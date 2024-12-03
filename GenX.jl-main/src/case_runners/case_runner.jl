@@ -59,7 +59,7 @@ function run_genx_case_simple!(case::AbstractString, mysetup::Dict, optimizer::A
             println("Clustering Time Series Data (Grouped)...")
             cluster_inputs(case, settings_path, mysetup)
         else
-            println("Time Series Data Already Clustered.")
+            println("Time Series Data Already Clustered.!")
         end
     end
 
@@ -84,7 +84,7 @@ function run_genx_case_simple!(case::AbstractString, mysetup::Dict, optimizer::A
 
     # Run MGA if the MGA flag is set to 1 else only save the least cost solution
     if has_values(EP)
-        println("Writing Output")
+        println("Writing Outputss")
         outputs_path = get_default_output_folder(case)
         elapsed_time = @elapsed outputs_path = write_outputs(EP,
             outputs_path,

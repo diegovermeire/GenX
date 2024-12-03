@@ -36,7 +36,7 @@ function load_inputs(setup::Dict, path::AbstractString)
     # Read in generator/resource availability profiles
     load_generators_variability!(setup, path, inputs)
 
-    validatetimebasis(inputs)
+    validatetimebasis(inputs, setup)
 
     if setup["CapacityReserveMargin"] == 1
         load_cap_reserve_margin!(setup, policies_path, inputs)
