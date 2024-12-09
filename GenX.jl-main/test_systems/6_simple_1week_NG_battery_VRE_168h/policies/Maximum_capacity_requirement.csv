@@ -1,0 +1,3 @@
+MaxCapReqConstraint,ConstraintDescription,Max_MW
+1,CT_battery,570
+2,CT_natural_gas_combined_cycle,12774

@@ -252,7 +252,7 @@ end
 This function calculates the multiplicative increase between the average value of the heterogeneous `timesteps_t_min_1` and the maximum average of the heterogeneous `timesteps_t` that meets the ramp constraints.
 
 In this calculation:
-- We assume minimal variance, meaning that each timestep within the homogeneous indices of `timesteps_t_min_1` is equal to the overall average value of `timesteps_t_min_1`.
+- We assume minimal variance, meaning that each timestep within the homogeneous indices of `timesteps_t_min_1` is equal to the overall average value of hetereogenous `timesteps_t_min_1`.
 - `k_homog_ramp_up` is the homogeneous ramp-up/down rate.
 - `timesteps_t` is the number of timesteps behind the consecutive timeindex t over which the ramp-up occurs.
 

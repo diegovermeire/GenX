@@ -93,6 +93,7 @@ function fuel!(EP::Model, inputs::Dict, setup::Dict)
     fuels = inputs["fuels"]
     fuel_costs = inputs["fuel_costs"]
     omega = inputs["omega"]
+    rel_timestep = inputs["Rel_TimeStep"]
 
     NUM_FUEL = length(fuels)
 
@@ -157,7 +158,7 @@ function fuel!(EP::Model, inputs::Dict, setup::Dict)
             sum(omega[t] * EP[:vMulFuels][y, i, t] for t in 1:T))
         @expression(EP,
             ePlantFuelConsumptionYear_multi_start[y in MULTI_FUELS, i in 1:max_fuels],
-            sum(omega[t] * EP[:vMulStartFuels][y, i, t] for t in 1:T))
+            sum(omega[t] * EP[:vMulStartFuels][y, i, t]  for t in 1:T))
         @expression(EP, ePlantFuelConsumptionYear_multi[y in MULTI_FUELS, i in 1:max_fuels],
             EP[:ePlantFuelConsumptionYear_multi_generation][y,
                 i]+EP[:ePlantFuelConsumptionYear_multi_start][y, i])

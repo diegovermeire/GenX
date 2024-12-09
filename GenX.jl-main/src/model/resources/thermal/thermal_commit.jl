@@ -176,7 +176,7 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
         begin
             [y in THERM_COMMIT, t in 1:T],
             EP[:vCOMMIT][y, t] ==
-            EP[:vCOMMIT][y, hoursbefore(p, t, 1)] + EP[:vSTART][y, t] - EP[:vSHUT][y, t]
+            EP[:vCOMMIT][y, hours_before_HE(t, 1, inputs,p)] + EP[:vSTART][y, t] - EP[:vSHUT][y, t]
         end)
 
     ### Maximum ramp up and down between consecutive hours (Constraints #5-6)
@@ -185,7 +185,7 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
     # Links last time step with first time step, ensuring position in hour 1 is within eligible ramp of final hour position
     # rampup constraints
     @constraint(EP, [y in THERM_COMMIT, t in 1:T],
-        EP[:vP][y, t] - EP[:vP][y, hoursbefore(p, t, 1)] + regulation_term[y, t] +
+        EP[:vP][y, t] - EP[:vP][y, hours_before_HE(t, 1, inputs,p)] + regulation_term[y, t] +
         reserves_term[y, t]<= heterogenous_ramp_small_variance(ramp_up_fraction(gen[y]),inputs["Rel_TimeStep"][t])  * cap_size(gen[y]) *
                              (EP[:vCOMMIT][y, t] - EP[:vSTART][y, t])
                              +
@@ -195,11 +195,12 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
                              -
                              min_power(gen[y]) * cap_size(gen[y]) * EP[:vSHUT][y, t])
 
+    
     # rampdown constraints
     @constraint(EP, [y in THERM_COMMIT, t in 1:T],
-        EP[:vP][y, hoursbefore(p, t, 1)] - EP[:vP][y, t] - regulation_term[y, t] +
+        EP[:vP][y, hours_before_HE(t, 1, inputs,p)] - EP[:vP][y, t] - regulation_term[y, t] +
         reserves_term[y,
-            hoursbefore(p, t, 1)]<= heterogenous_ramp_small_variance(ramp_down_fraction(gen[y]),inputs["Rel_TimeStep"][hoursbefore(p, t, 1)]) * cap_size(gen[y]) *
+        hours_before_HE(t, 1, inputs,p)]<= heterogenous_ramp_small_variance(ramp_down_fraction(gen[y]),inputs["Rel_TimeStep"][hours_before_HE(t, 1, inputs,p)]) * cap_size(gen[y]) *
                                    (EP[:vCOMMIT][y, t] - EP[:vSTART][y, t])
                                    -
                                    min_power(gen[y]) * cap_size(gen[y]) * EP[:vSTART][y, t]
