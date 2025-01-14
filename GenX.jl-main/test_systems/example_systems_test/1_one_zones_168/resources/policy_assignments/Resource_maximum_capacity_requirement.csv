@@ -1,0 +1,4 @@
+Resource,Max_Cap_1,Max_Cap_2,Max_Cap_3
+ME_natural_gas_combined_cycle,1,0,0
+ME_onshore_wind,0,1,0
+ME_battery,0,0,1

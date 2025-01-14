@@ -108,29 +108,72 @@ function storage_all!(EP::Model, inputs::Dict, setup::Dict)
         CONSTRAINTSET = STOR_ALL
     end
    
-    @constraint(EP,
+    if setup["HeterogenousTimesteps"] == 0
+        @constraint(EP,
         cSoCBalStart[t in START_SUBPERIODS, y in CONSTRAINTSET],
         EP[:vS][y,
             t]==
-        EP[:vS][y, t + index_toa_upwards(inputs, t, hours_per_subperiod)] -
-        (1 / efficiency_down(gen[y]) * EP[:vP][y, t] * inputs["Rel_TimeStep"][t])
+        EP[:vS][y, t + hours_per_subperiod - 1] -
+        (1 / efficiency_down(gen[y]) * EP[:vP][y, t])
         +
-        (efficiency_up(gen[y]) * EP[:vCHARGE][y, t] * inputs["Rel_TimeStep"][t]) -
-        (self_discharge(gen[y]) * EP[:vS][y, t + index_toa_upwards(inputs, t, hours_per_subperiod)])* inputs["Rel_TimeStep"][t])
+        (efficiency_up(gen[y]) * EP[:vCHARGE][y, t]) -
+        (self_discharge(gen[y]) * EP[:vS][y, t + hours_per_subperiod - 1]))
 
-    @constraints(EP,
-        begin
-            # Maximum energy stored must be less than energy capacity
-            [y in STOR_ALL, t in 1:T], EP[:vS][y, t] <= EP[:eTotalCapEnergy][y]
+        @constraints(EP,
+            begin
+                # Maximum energy stored must be less than energy capacity
+                [y in STOR_ALL, t in 1:T], EP[:vS][y, t] <= EP[:eTotalCapEnergy][y]
 
-            # energy stored for the next hour
-            cSoCBalInterior[t in INTERIOR_SUBPERIODS, y in STOR_ALL],
-            EP[:vS][y, t] ==
-            EP[:vS][y, t - 1] - (1 / efficiency_down(gen[y]) * EP[:vP][y, t]* inputs["Rel_TimeStep"][t]) +
-            (efficiency_up(gen[y]) * EP[:vCHARGE][y, t]* inputs["Rel_TimeStep"][t]) -
-            (self_discharge(gen[y]) * EP[:vS][y, t - 1]* inputs["Rel_TimeStep"][t])
-        end)
+                # energy stored for the next hour
+                cSoCBalInterior[t in INTERIOR_SUBPERIODS, y in STOR_ALL],
+                EP[:vS][y, t] ==
+                EP[:vS][y, t - 1] - (1 / efficiency_down(gen[y]) * EP[:vP][y, t]) +
+                (efficiency_up(gen[y]) * EP[:vCHARGE][y, t]) -
+                (self_discharge(gen[y]) * EP[:vS][y, t - 1])
+            end)
+    elseif setup["HeterogenousTimesteps"] == 1
 
+        @constraint(EP,
+        cSoCBalStart[t in START_SUBPERIODS, y in CONSTRAINTSET],
+        EP[:vS][y,t]== 
+        (((1 - self_discharge(gen[y]))^inputs["Rel_TimeStep"][t]) * (EP[:vS][y, t + index_toa_upwards(inputs, t, hours_per_subperiod)] - sum(EP[:vP][y, t] * (1 / efficiency_down(gen[y])) / ((1-self_discharge(gen[y]))^i) for i in 0:(inputs["Rel_TimeStep"][t]-1) )) + 
+        sum(efficiency_up(gen[y]) * EP[:vCHARGE][y, t] * ((1 - self_discharge(gen[y]))^i) for i in 0:(inputs["Rel_TimeStep"][t] -1))))
+        
+        @constraints(EP,
+            begin
+                # Maximum energy stored must be less than energy capacity
+                [y in STOR_ALL, t in 1:T], EP[:vS][y, t] <= EP[:eTotalCapEnergy][y]
+
+                # energy stored for the next hour
+                cSoCBalInterior[t in INTERIOR_SUBPERIODS, y in STOR_ALL],
+                EP[:vS][y, t]== 
+                (((1 - self_discharge(gen[y]))^inputs["Rel_TimeStep"][t]) * (EP[:vS][y, t-1] - sum(EP[:vP][y, t] * (1 / efficiency_down(gen[y])) / ((1-self_discharge(gen[y]))^i) for i in 0:(inputs["Rel_TimeStep"][t]-1) )) + 
+                sum(efficiency_up(gen[y]) * EP[:vCHARGE][y, t] * ((1 - self_discharge(gen[y]))^i) for i in 0:(inputs["Rel_TimeStep"][t] -1)))
+            end)
+
+        # @constraint(EP,
+        #     cSoCBalStart[t in START_SUBPERIODS, y in CONSTRAINTSET],
+        #     EP[:vS][y,
+        #         t]==
+        #     EP[:vS][y, t + index_toa_upwards(inputs, t, hours_per_subperiod)] -
+        #     (1 / efficiency_down(gen[y]) * EP[:vP][y, t] * inputs["Rel_TimeStep"][t])
+        #     +
+        #     (efficiency_up(gen[y]) * EP[:vCHARGE][y, t]* inputs["Rel_TimeStep"][t]) -
+        #     (self_discharge(gen[y]) * EP[:vS][y, t + index_toa_upwards(inputs, t, hours_per_subperiod)])* (inputs["Rel_TimeStep"][t]* (inputs["Rel_TimeStep"][t] +1)/2))
+        
+        # @constraints(EP,
+        #     begin 
+        #         # Maximum energy stored must be less than energy capacity
+        #         [y in STOR_ALL, t in 1:T], EP[:vS][y, t] <= EP[:eTotalCapEnergy][y]
+                
+        #         # energy stored for the next hour
+        #         cSoCBalInterior[t in INTERIOR_SUBPERIODS, y in STOR_ALL],
+        #         EP[:vS][y, t] ==
+        #         EP[:vS][y, t - 1] - (1 / efficiency_down(gen[y]) * EP[:vP][y, t] * inputs["Rel_TimeStep"][t]) +
+        #         (efficiency_up(gen[y]) * EP[:vCHARGE][y, t] * inputs["Rel_TimeStep"][t]) -
+        #         (self_discharge(gen[y]) * EP[:vS][y, t - 1] * (inputs["Rel_TimeStep"][t]* (inputs["Rel_TimeStep"][t] +1)/2))
+        #     end)
+    end
     # Hourly matching constraints
     if setup["HourlyMatching"] == 1
         QUALIFIED_SUPPLY = inputs["QUALIFIED_SUPPLY"]   # Resources that are qualified to contribute to hourly matching constraint
@@ -160,15 +203,25 @@ function storage_all!(EP::Model, inputs::Dict, setup::Dict)
                     efficiency_down(gen[y])
                 end)
         else
-            @constraints(EP,
-                begin
-                    [y in STOR_ALL, t = 1:T], EP[:vP][y, t] <= EP[:eTotalCap][y]
-                    [y in STOR_ALL, t = 1:T],
-                    EP[:vP][y, t] * inputs["Rel_TimeStep"][t] <=
-                    EP[:vS][y, hours_before_HE(t, 1, inputs, hours_per_subperiod)] *
-                    efficiency_down(gen[y])
-                end)
-                
+            # if setup["HeterogenousTimesteps"] == 0
+            #     @constraints(EP,
+            #     begin
+            #         [y in STOR_ALL, t = 1:T], EP[:vP][y, t] <= EP[:eTotalCap][y]
+            #         [y in STOR_ALL, t = 1:T],
+            #         EP[:vP][y, t] <=
+            #         EP[:vS][y, hoursbefore(hours_per_subperiod, t, 1)] *
+            #         efficiency_down(gen[y])
+            #     end)
+            # elseif setup["HeterogenousTimesteps"] == 1
+                @constraints(EP,
+                    begin
+                        [y in STOR_ALL, t = 1:T], EP[:vP][y, t] <= EP[:eTotalCap][y]
+                        [y in STOR_ALL, t = 1:T],
+                        EP[:vP][y, t] * inputs["Rel_TimeStep"][t] <=
+                        EP[:vS][y, hours_before_HE(t, 1, inputs, hours_per_subperiod)] *
+                        efficiency_down(gen[y])
+                    end)
+            # end 
         end
     end
 

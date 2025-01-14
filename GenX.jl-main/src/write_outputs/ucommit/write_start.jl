@@ -6,7 +6,8 @@ function write_start(path::AbstractString, inputs::Dict, setup::Dict, EP::Model)
 
     dfStart = DataFrame(Resource = resources, Zone = zones)
     start = value.(EP[:vSTART][COMMIT, :].data)
-    dfStart.AnnualSum = start * inputs["omega"]
+    # dfStart.AnnualSum = start * inputs["omega"] / inputs["Rel_TimeStep"]
+    dfStart.AnnualSum .= start * (inputs["omega"] ./ inputs["Rel_TimeStep"])
 
     filepath = joinpath(path, "start.csv")
     if setup["WriteOutputs"] == "annual"

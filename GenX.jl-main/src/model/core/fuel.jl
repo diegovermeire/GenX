@@ -187,7 +187,7 @@ function fuel!(EP::Model, inputs::Dict, setup::Dict)
 
     # plant level start-up fuel cost for output
     @expression(EP, ePlantCFuelStart[y = 1:G],
-        sum(omega[t] * EP[:eCFuelStart][y, t] for t in 1:T))
+        sum((omega[t] / inputs["Rel_TimeStep"][t]) * EP[:eCFuelStart][y, t] for t in 1:T))
     # zonal level total fuel cost for output
     @expression(EP, eZonalCFuelStart[z = 1:Z],
         sum(EP[:ePlantCFuelStart][y] for y in resources_in_zone_by_rid(gen, z)))

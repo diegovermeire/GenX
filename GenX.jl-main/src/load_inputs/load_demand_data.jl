@@ -57,8 +57,13 @@ function load_demand_data!(setup::Dict, path::AbstractString, inputs::Dict)
     #Import 
     if setup["HeterogenousTimesteps"] == 1
         inputs["REP_PERIOD"] = convert(Int16, as_vector(:Rep_Periods)[1])
-        inputs["omega"] = demand_in[:, "omega"]  # Access columns in Julia using `:` for rows
-        inputs["Rel_TimeStep"] = demand_in[:, "Rel_TimeStep"]
+        inputs["Rel_TimeStep"] = collect(skipmissing(demand_in[:, "Rel_TimeStep"]))
+
+        if setup["TimeDomainReduction"] == 1
+            inputs["omega"] = demand_in[:, "omega"]  # Access columns in Julia using `:` for rows
+        elseif setup["TimeDomainReduction"] == 0
+            inputs["omega"] = inputs["Rel_TimeStep"]
+        end
         inputs["hours_per_subperiod"] = convert(Int64, as_vector(:Timesteps_per_Rep_Period)[1])
         inputs["H"] = convert(Int64, as_vector(:Timesteps_per_Rep_Period)[1])
 
@@ -174,8 +179,8 @@ function validatetimebasis(inputs::Dict, setup::Dict)
     check_equal = [T,
         demand_length,
         generators_variability_length,
-        fuel_costs_length,
-        expected_length_1]
+        fuel_costs_length]
+        # expected_length_1]
         # expected_length_2]
 
     allequal(x) = all(y -> y == x[1], x)

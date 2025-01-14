@@ -170,23 +170,34 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
             [y in THERM_COMMIT, t = 1:T],
             EP[:vSHUT][y, t] <= EP[:eTotalCap][y] / cap_size(gen[y])
         end)
-
-    # Commitment state constraint linking startup and shutdown decisions (Constraint #4)
-    @constraints(EP,
+    
+    if setup["HeterogenousTimesteps"] == 0
+        # Commitment state constraint linking startup and shutdown decisions (Constraint #4)
+        @constraints(EP,
         begin
             [y in THERM_COMMIT, t in 1:T],
             EP[:vCOMMIT][y, t] ==
-            EP[:vCOMMIT][y, hours_before_HE(t, 1, inputs,p)] + EP[:vSTART][y, t] - EP[:vSHUT][y, t]
+            EP[:vCOMMIT][y, hoursbefore(p, t, 1)] + EP[:vSTART][y, t] - EP[:vSHUT][y, t]
         end)
-
+    elseif setup["HeterogenousTimesteps"] == 1
+        # Commitment state constraint linking startup and shutdown decisions (Constraint #4)
+        @constraints(EP,
+            begin
+                [y in THERM_COMMIT, t in 1:T],
+                EP[:vCOMMIT][y, t] ==
+                EP[:vCOMMIT][y, hours_before_HE(t, 1, inputs, p)] + EP[:vSTART][y, t] - EP[:vSHUT][y, t]
+            end)
+    end
     ### Maximum ramp up and down between consecutive hours (Constraints #5-6)
 
     ## For Start Hours
     # Links last time step with first time step, ensuring position in hour 1 is within eligible ramp of final hour position
     # rampup constraints
-    @constraint(EP, [y in THERM_COMMIT, t in 1:T],
-        EP[:vP][y, t] - EP[:vP][y, hours_before_HE(t, 1, inputs,p)] + regulation_term[y, t] +
-        reserves_term[y, t]<= heterogenous_ramp_small_variance(ramp_up_fraction(gen[y]),inputs["Rel_TimeStep"][t])  * cap_size(gen[y]) *
+    #       - min_power: minimum generation level for a unit as a fraction of total capacity
+    if setup["HeterogenousTimesteps"] == 0
+        @constraint(EP, [y in THERM_COMMIT, t in 1:T],
+        EP[:vP][y, t] - EP[:vP][y, hoursbefore(p, t, 1)] + regulation_term[y, t] +
+        reserves_term[y, t]<=ramp_up_fraction(gen[y]) * cap_size(gen[y]) *
                              (EP[:vCOMMIT][y, t] - EP[:vSTART][y, t])
                              +
                              min(inputs["pP_Max"][y, t],
@@ -194,13 +205,26 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
                              cap_size(gen[y]) * EP[:vSTART][y, t]
                              -
                              min_power(gen[y]) * cap_size(gen[y]) * EP[:vSHUT][y, t])
+    elseif setup["HeterogenousTimesteps"] == 1
+        @constraint(EP, [y in THERM_COMMIT, t in 1:T],
+            EP[:vP][y, t] - EP[:vP][y, hours_before_HE(t, 1, inputs,p)] + regulation_term[y, t] +
+            reserves_term[y, t]<= heterogenous_ramp_small_variance(ramp_up_fraction(gen[y]),inputs["Rel_TimeStep"][t])  * cap_size(gen[y]) *
+                                (EP[:vCOMMIT][y, t] - EP[:vSTART][y, t])
+                                +
+                                min(inputs["pP_Max"][y, t],
+                                    max(min_power(gen[y]), ramp_up_fraction(gen[y]))) *
+                                cap_size(gen[y]) * EP[:vSTART][y, t]
+                                -
+                                min_power(gen[y]) * cap_size(gen[y]) * EP[:vSHUT][y, t])
+    end
 
     
     # rampdown constraints
-    @constraint(EP, [y in THERM_COMMIT, t in 1:T],
-        EP[:vP][y, hours_before_HE(t, 1, inputs,p)] - EP[:vP][y, t] - regulation_term[y, t] +
+    if setup["HeterogenousTimesteps"] == 0
+        @constraint(EP, [y in THERM_COMMIT, t in 1:T],
+        EP[:vP][y, hoursbefore(p, t, 1)] - EP[:vP][y, t] - regulation_term[y, t] +
         reserves_term[y,
-        hours_before_HE(t, 1, inputs,p)]<= heterogenous_ramp_small_variance(ramp_down_fraction(gen[y]),inputs["Rel_TimeStep"][hours_before_HE(t, 1, inputs,p)]) * cap_size(gen[y]) *
+            hoursbefore(p, t, 1)]<=ramp_down_fraction(gen[y]) * cap_size(gen[y]) *
                                    (EP[:vCOMMIT][y, t] - EP[:vSTART][y, t])
                                    -
                                    min_power(gen[y]) * cap_size(gen[y]) * EP[:vSTART][y, t]
@@ -208,7 +232,20 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
                                    min(inputs["pP_Max"][y, t],
                                        max(min_power(gen[y]), ramp_down_fraction(gen[y]))) *
                                    cap_size(gen[y]) * EP[:vSHUT][y, t])
-
+    elseif setup["HeterogenousTimesteps"] == 1
+        @constraint(EP, [y in THERM_COMMIT, t in 1:T],
+            EP[:vP][y, hours_before_HE(t, 1, inputs,p)] - EP[:vP][y, t] - regulation_term[y, t] +
+            reserves_term[y,
+            hours_before_HE(t, 1, inputs,p)]<= heterogenous_ramp_small_variance(ramp_down_fraction(gen[y]),inputs["Rel_TimeStep"][hours_before_HE(t, 1, inputs,p)]) * cap_size(gen[y]) *
+                                    (EP[:vCOMMIT][y, t] - EP[:vSTART][y, t])
+                                    -
+                                    min_power(gen[y]) * cap_size(gen[y]) * EP[:vSTART][y, t]
+                                    +
+                                    min(inputs["pP_Max"][y, t],
+                                        max(min_power(gen[y]), ramp_down_fraction(gen[y]))) *
+                                    cap_size(gen[y]) * EP[:vSHUT][y, t])
+    end
+                                    
     ### Minimum and maximum power output constraints (Constraints #7-8)
     if setup["OperationalReserves"] == 1
         # If modeling with regulation and reserves, constraints are established by thermal_commit_operational_reserves() function below
@@ -228,18 +265,34 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
     end
 
     ### Minimum up and down times (Constraints #9-10)
-    Up_Time = zeros(Int, G)
-    Up_Time[THERM_COMMIT] .= Int.(floor.(up_time.(gen[THERM_COMMIT])))
-    @constraint(EP, [y in THERM_COMMIT, t in 1:T],
-        EP[:vCOMMIT][y,
-            t]>=sum(EP[:vSTART][y, u] for u in (iterate_backward(inputs, t, Up_Time[y]):t)))
+    if setup["HeterogenousTimesteps"] == 0
+        ### Minimum up and down times (Constraints #9-10)
+        Up_Time = zeros(Int, G)
+        Up_Time[THERM_COMMIT] .= Int.(floor.(up_time.(gen[THERM_COMMIT])))
+        @constraint(EP, [y in THERM_COMMIT, t in 1:T],
+            EP[:vCOMMIT][y,
+                t]>=sum(EP[:vSTART][y, u] for u in hoursbefore(p, t, 0:(Up_Time[y] - 1))))
 
-    Down_Time = zeros(Int, G)
-    Down_Time[THERM_COMMIT] .= Int.(floor.(down_time.(gen[THERM_COMMIT])))
-    @constraint(EP, [y in THERM_COMMIT, t in 1:T],
-        EP[:eTotalCap][y] / cap_size(gen[y]) -
-        EP[:vCOMMIT][y,
-            t]>=sum(EP[:vSHUT][y, u] for u in (iterate_backward(inputs, t, Down_Time[y]):t)))
+        Down_Time = zeros(Int, G)
+        Down_Time[THERM_COMMIT] .= Int.(floor.(down_time.(gen[THERM_COMMIT])))
+        @constraint(EP, [y in THERM_COMMIT, t in 1:T],
+            EP[:eTotalCap][y] / cap_size(gen[y]) -
+            EP[:vCOMMIT][y,
+                t]>=sum(EP[:vSHUT][y, u] for u in hoursbefore(p, t, 0:(Down_Time[y] - 1))))
+    elseif setup["HeterogenousTimesteps"] == 1
+        Up_Time = zeros(Int, G)
+        Up_Time[THERM_COMMIT] .= Int.(floor.(up_time.(gen[THERM_COMMIT])))
+        @constraint(EP, [y in THERM_COMMIT, t in 1:T],
+            EP[:vCOMMIT][y,
+                t]>=sum(EP[:vSTART][y, u] for u in (iterate_backward(inputs, t, Up_Time[y]))))
+                
+        Down_Time = zeros(Int, G)
+        Down_Time[THERM_COMMIT] .= Int.(floor.(down_time.(gen[THERM_COMMIT])))
+        @constraint(EP, [y in THERM_COMMIT, t in 1:T],
+            EP[:eTotalCap][y] / cap_size(gen[y]) -
+            EP[:vCOMMIT][y,
+                t]>=sum(EP[:vSHUT][y, u] for u in (iterate_backward(inputs, t, Down_Time[y]))))
+    end
 
     ## END Constraints for thermal units subject to integer (discrete) unit commitment decisions
     if !isempty(ids_with_maintenance(gen))

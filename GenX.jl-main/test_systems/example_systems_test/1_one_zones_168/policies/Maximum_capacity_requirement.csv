@@ -1,0 +1,4 @@
+MaxCapReqConstraint,ConstraintDescription,Max_MW
+1,ME_natural_gas_combined_cycle,500
+2,ME_onshore_wind,1161.002
+3,ME_battery,33

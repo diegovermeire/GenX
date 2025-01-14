@@ -2,6 +2,7 @@
 ENV["GENX_PRECOMPILE"] = "false"
 using GenX
 using Gurobi
+using JuMP
 include(raw"C:\Users\Diego\GenX\GenX.jl-main\Work directrory\TDR_HO_HE.jl")
 include(raw"C:\Users\Diego\GenX\GenX.jl-main\Work directrory\TDR_HO_HO.jl")
 include(raw"C:\Users\Diego\GenX\GenX.jl-main\Work directrory\Analyse_HO_HE.jl")
@@ -102,6 +103,61 @@ for i in 1:2
         # Find closest unused ouput directory name and create it
         outputs_path = choose_output_dir(outputs_path)
     end
+
+    ################# DEBUGGING on NSE costs #################
+    println("#############################################")
+    println("Scenario $i ")
+    println("#############################################")
+
+    T = myinputs["T"]     # Number of time steps
+    Z = myinputs["Z"]     # Number of zones
+    SEG = myinputs["SEG"] # Number of demand curtailment segments
+    omega = myinputs["omega"]
+
+    t_test = [11, 12, 83]
+    s_test = [3, 4]
+    c_NSE = 0
+    for s in s_test, t in t_test, z in 1:Z
+        # println("Segment:", s ," Unit_cost_nSE at time ", t, "is ", myinputs["omega"][t] * myinputs["pC_D_Curtail"][s])
+        # println("The Qt. of NSE in zone 4 is ", (value(EP[:vNSE][s, t, z])))
+        # println("The max allowed curtailment in zone 4 is $(myinputs["pMax_D_Curtail"][s] * myinputs["pD"][t, z]))")
+        # println("                  ")
+        c_NSE += value(omega[t]*EP[:eCNSE][s, t, z]) #entails omega
+    end
+    #############################################
+    
+    ################# DEBUGGING on cost comparison #################
+    T = myinputs["T"]     # Number of time steps
+    Z = myinputs["Z"]     # Number of zones
+    SEG = myinputs["SEG"] # Number of demand curtailment segments
+    STOR_ALL = myinputs["STOR_ALL"]
+    gen = myinputs["RESOURCES"]
+    THERM_ALL = myinputs["THERM_ALL"]
+    
+
+    t_test = [11, 12, 83]
+    s_test = [3, 4]
+    println("#############################################")
+    cap_stor_cost = sum(GenX.inv_cost_per_mwyr(gen[y]) * value(EP[:vCAP][y]) + GenX.fixed_om_cost_per_mwyr(gen[y]) * value(EP[:eTotalCap][y]) for y in STOR_ALL)
+    var_stor_cost = sum(value(EP[:eTotalCVarInT][t]) for t in t_test) #entails omega
+    NGCC_var_cost = sum(value(EP[:eCVar_out][y,t]) for y in THERM_ALL, t in t_test) #entails omega
+    NGCC_fuel_cost = sum(omega[t]*EP[:eCFuelOut][y, t] for y in THERM_ALL, t in t_test)
+
+    println("Costs of $i scenario: ", value(cap_stor_cost) + value(var_stor_cost) + c_NSE + value(NGCC_var_cost) + value(NGCC_fuel_cost))
+    println("Total NSE cost ", c_NSE)
+    println("Total fixed storage cost", cap_stor_cost)
+
+    for s in s_test, t in t_test, z in 1:Z
+        println(" storage variable cost at time $t ", value(EP[:eTotalCVarInT][t]))
+        println(" NGCC variable cost at time $t ", sum(value(EP[:eCVar_out][y,t]) for y in THERM_ALL))
+        println(" NGCC fuel cost at time $t ", sum(omega[t]*EP[:eCFuelOut][y, t] for y in THERM_ALL))
+        println("                  ")
+    end
+    println("                  ")
+    println("                  ")
+
+
+    #############################################
 
     outputs_folder[i] = outputs_path
     elapsed_time = @elapsed outputs_path = GenX.write_outputs(EP,

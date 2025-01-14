@@ -1,5 +1,5 @@
 @doc raw"""
-    hoursbefore(p::Int, t::Int, b::Int, timesteps_per_hour::Vector{Int})
+    hoursbefore(t::Int, b::Int, timesteps_per_hour::Vector{Int})
 
     Determines the time index b timesteps before index t in
     a landscape starting from t=1, where each hour has a
@@ -95,14 +95,18 @@ function hours_before_HE(t, HO_timesteps_backward, inputs::Dict, hours_per_subpe
 end
 
 ##################################################################################################
+my_dict = Dict{String, Vector{Int}}() 
+my_dict["Rel_TimeStep"] = [1, 2, 2, 1, 1, 1, 2]
+hours_before_HE(4, 3, my_dict, 5)
 
-hoursbefore_index( 1, 4, [2, 3, 1, 4])
+hoursbefore_index(2, 6, [2, 2, 2, 2])
+
 
 my_dict = Dict{String, Vector{Int}}() 
-my_dict["Rel_TimeStep"] = [1, 1, 2, 1, 1]
+my_dict["Rel_TimeStep"] = [1, 2, 1, 1, 1]
 cumulative_sum(my_dict)
 
-indexes_in_same_period(cumulative_sum(my_dict), 2, 4)
+indexes_in_same_period(cumulative_sum(my_dict), 3, 2)
 indexes_in_same_period(cumulative_sum(my_dict), 2, 4)[1]
 
 

@@ -120,7 +120,7 @@ function investment_discharge!(EP::Model, inputs::Dict, setup::Dict)
         end)
     # Sum individual resource contributions to fixed costs to get total fixed costs
     @expression(EP, eTotalCFix, sum(EP[:eCFix][y] for y in 1:G))
-
+    
     # Add term to objective function expression
     if MultiStage == 1
         # OPEX multiplier scales fixed costs to account for multiple years between two model stages

@@ -62,7 +62,9 @@ function TDR_HO_to_HE(path::String)
     else   
         midpoint += 1
     end
+
     rows_to_keep = collect(1:midpoint)
+    
     for i in midpoint+1:2:nrow(df_fuel)
         if i + 1 <= nrow(df_fuel)
             push!(rows_to_keep, i)

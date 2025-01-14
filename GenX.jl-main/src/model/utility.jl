@@ -87,25 +87,17 @@ end
     This function iterates backward from the current time index `current_t`, summing relative timesteps from `inputs["Rel_Timesteps"]` until the cumulative sum exceeds the specified threshold `tao`. It returns the index where the sum exceeds `tao` or 1 if the sum does not exceed the threshold at any point.
 """
 function iterate_backward(inputs::Dict, current_t::Int, up_down_tao::Int)
-    tao_tot = 0
-    
-    # Iterate backwards from current_t
-    for t in current_t:-1:1
-        # Get the value from inputs["Rel_Timesteps"][t]
-        rel_timestep = inputs["Rel_TimeStep"][t]
-        
-        # Check if tao_tot + rel_timestep is less than or equal to tao
-        if tao_tot + rel_timestep < up_down_tao
-            # Add to tao_tot if condition is satisfied
-            tao_tot += rel_timestep
-        else
-            # Return the index where the condition was not satisfied
-            return t
-        end
+    # Array containing all time_indexes up_down_tao from 
+    time_set = []
+    p = inputs["hours_per_subperiod"] #total number of hours per subperiod
+    #Add current_t, in HE_timesteps start-up assumed to occur during first HO time index of th HE time index 
+    push!(time_set, current_t)
+
+    #Decrease up_down_tao to account for having already pushed current_t
+    for t_back in 1:(up_down_tao-1)
+        push!(time_set, hours_before_HE(current_t, t_back, inputs, p))
     end
-    
-    # If the loop completes, return 1 as the index (start of the array)
-    return 1
+    return unique(time_set)
 end
 
 @doc raw""" 

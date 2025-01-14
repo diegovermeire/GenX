@@ -1,0 +1,4 @@
+MinCapReqConstraint,ConstraintDescription,Min_MW
+1,ME_onshore_wind,1160
+2,ME_battery,32
+3,ME_natural_gas_combined_cycle,499

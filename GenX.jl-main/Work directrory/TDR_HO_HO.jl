@@ -84,7 +84,7 @@ function TDR_HO_to_HO(path::String)
     # Process capacity factor data
     midpoint = div(nrow(df_CF), 2)
     if !(midpoint % 2 == 0)
-        midpoint += 2
+        midpoint += 1
     end
     modified_CF = deepcopy(df_CF)
 

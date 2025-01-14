@@ -1,0 +1,4 @@
+MinCapReqConstraint,ConstraintDescription,Min_MW
+1,MA_PV,111453.2285
+2,MA_battery,45516.23729
+3,MA_natural_gas_combined_cycle,500

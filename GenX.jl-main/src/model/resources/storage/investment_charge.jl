@@ -100,6 +100,8 @@ function investment_charge!(EP::Model, inputs::Dict, setup::Dict)
     # Sum individual resource contributions to fixed costs to get total fixed costs
     @expression(EP, eTotalCFixCharge, sum(EP[:eCFixCharge][y] for y in STOR_ASYMMETRIC))
 
+    
+
     # Add term to objective function expression
     if MultiStage == 1
         # OPEX multiplier scales fixed costs to account for multiple years between two model stages

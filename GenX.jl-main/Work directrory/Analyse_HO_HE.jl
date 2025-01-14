@@ -115,7 +115,7 @@ function compare_results(folder_ho::String, folder_he::String, output_folder::St
     if !isdir(output_folder)
         mkpath(output_folder)
     end
-    output_path = joinpath(output_folder, "HO_HE_comparison.csv")
+    output_path = joinpath(output_folder, "a_HO_HE_comparison.csv")
     CSV.write(output_path, total_results)
     println("Results saved to $output_path")
 end

@@ -74,12 +74,12 @@ function co2!(EP::Model, inputs::Dict)
     if isempty(CCS)
         @expression(EP, eEmissionsByPlant[y = 1:G, t = 1:T],
             if y in SINGLE_FUEL
-                ((1 - biomass(gen[y])) * (EP[:vFuel][y, t] + EP[:vStartFuel][y, t]) *
+                ((1 - biomass(gen[y])) * (EP[:vFuel][y, t] + (EP[:vStartFuel][y, t]/inputs["Rel_TimeStep"][t])) *
                  fuel_CO2[fuel(gen[y])])
             else
                 sum(((1 - biomass(gen[y])) *
-                     (EP[:vMulFuels][y, i, t] + EP[:vMulStartFuels][y, i, t]) *
-                     fuel_CO2[fuel_cols(gen[y], tag = i)]) for i in 1:max_fuels)
+                     (EP[:vMulFuels][y, i, t] + (EP[:vMulStartFuels][y, i, t]/inputs["Rel_TimeStep"][t]) *
+                     fuel_CO2[fuel_cols(gen[y], tag = i)]) for i in 1:max_fuels))
             end)
     else
         @info "Using the CO2 module to determine the CO2 emissions of CCS-equipped plants"
@@ -91,13 +91,13 @@ function co2!(EP::Model, inputs::Dict)
                 (1 - biomass(gen[y]) - co2_capture_fraction(gen[y])) * EP[:vFuel][y, t] *
                 fuel_CO2[fuel(gen[y])] +
                 (1 - biomass(gen[y]) - co2_capture_fraction_startup(gen[y])) *
-                EP[:eStartFuel][y, t] * fuel_CO2[fuel(gen[y])]
+                EP[:eStartFuel][y, t] / inputs["Rel_TimeStep"][t]* fuel_CO2[fuel(gen[y])]
             else
                 sum((1 - biomass(gen[y]) - co2_capture_fraction(gen[y])) *
                     EP[:vMulFuels][y, i, t] * fuel_CO2[fuel_cols(gen[y], tag = i)]
                 for i in 1:max_fuels) +
                 sum((1 - biomass(gen[y]) - co2_capture_fraction_startup(gen[y])) *
-                    EP[:vMulStartFuels][y, i, t] * fuel_CO2[fuel_cols(gen[y], tag = i)]
+                    EP[:vMulStartFuels][y, i, t] / inputs["Rel_TimeStep"][t] * fuel_CO2[fuel_cols(gen[y], tag = i)]
                 for i in 1:max_fuels)
             end)
 
@@ -105,12 +105,12 @@ function co2!(EP::Model, inputs::Dict)
         @expression(EP, eEmissionsCaptureByPlant[y in CCS, t = 1:T],
             if y in SINGLE_FUEL
                 co2_capture_fraction(gen[y]) * EP[:vFuel][y, t] * fuel_CO2[fuel(gen[y])] +
-                co2_capture_fraction_startup(gen[y]) * EP[:eStartFuel][y, t] *
+                co2_capture_fraction_startup(gen[y]) * EP[:eStartFuel][y, t]/ inputs["Rel_TimeStep"][t] *
                 fuel_CO2[fuel(gen[y])]
             else
                 sum(co2_capture_fraction(gen[y]) * EP[:vMulFuels][y, i, t] *
                     fuel_CO2[fuel_cols(gen[y], tag = i)] for i in 1:max_fuels) +
-                sum(co2_capture_fraction_startup(gen[y]) * EP[:vMulStartFuels][y, i, t] *
+                sum(co2_capture_fraction_startup(gen[y]) * EP[:vMulStartFuels][y, i, t] / inputs["Rel_TimeStep"][t]*
                     fuel_CO2[fuel_cols(gen[y], tag = i)] for i in 1:max_fuels)
             end)
 
