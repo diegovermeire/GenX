@@ -250,6 +250,16 @@ In this calculation:
 
 The function computes the cumulative effect of `k_homog_ramp_up` applied over `timesteps_t` and returns the average increase factor relative to the starting value.
 """
-function heterogenous_ramp_small_variance(k_homog_ramp_up, timesteps_t)
-    return (sum((1 + k_homog_ramp_up)^i for i in 1:timesteps_t) / timesteps_t) - 1
+function heterogenous_ramp_small_variance(k_homog_ramp_up, timesteps_t, time_step_t_min_1)
+    k_he_ramp_up_t = (sum((1 + k_homog_ramp_up)^i for i in 1:timesteps_t) / timesteps_t) - 1
+    k_he_ramp_up_t_min_1 = (sum((1 + k_homog_ramp_up)^i for i in 1:time_step_t_min_1) / time_step_t_min_1) - 1
+
+    k_he_final = max(k_he_ramp_up_t, k_he_ramp_up_t_min_1)
+
+    # When timesteps_t or timesteps_t_min_1 are too large, k_he_final = Inf which the model cannot use
+    if isinf(k_he_final)
+        k_he_final = k_homog_ramp_up^max(timesteps_t, time_step_t_min_1)
+    end
+
+    return k_he_final
 end

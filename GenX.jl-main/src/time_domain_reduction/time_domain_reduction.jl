@@ -642,20 +642,29 @@ function cluster_inputs(inpath,
         mysetup,
         stage_id = -99,
         v = false;
-        random = true)
+        random = true, 
+        myTDRsetup_ = nothing)
     if v
         println(now())
     end
 
     ##### Step 0: Load in settings and data
 
-    # Read time domain reduction settings file time_domain_reduction_settings.yml
-    myTDRsetup = YAML.load(open(joinpath(settings_path,
-        "time_domain_reduction_settings.yml")))
+    if myTDRsetup_ !== nothing
+        # Read time domain reduction settings file time_domain_reduction_settings.yml
+        myTDRsetup = myTDRsetup_
+    else
+        myTDRsetup = YAML.load(open(joinpath(settings_path,
+            "time_domain_reduction_settings.yml")))
+    end
+
     update_deprecated_tdr_inputs!(myTDRsetup)
 
     # Accept model parameters from the settings file time_domain_reduction_settings.yml
     TimestepsPerRepPeriod = myTDRsetup["TimestepsPerRepPeriod"]
+    if haskey(mysetup, "TimestepsPerRepPeriod")
+        TimestepsPerRepPeriod = mysetup["TimestepsPerRepPeriod"]
+    end
     ClusterMethod = myTDRsetup["ClusterMethod"]
     ScalingMethod = myTDRsetup["ScalingMethod"]
     MinPeriods = myTDRsetup["MinPeriods"]

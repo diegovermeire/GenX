@@ -208,7 +208,7 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
     elseif setup["HeterogenousTimesteps"] == 1
         @constraint(EP, [y in THERM_COMMIT, t in 1:T],
             EP[:vP][y, t] - EP[:vP][y, hours_before_HE(t, 1, inputs,p)] + regulation_term[y, t] +
-            reserves_term[y, t]<= heterogenous_ramp_small_variance(ramp_up_fraction(gen[y]),inputs["Rel_TimeStep"][t])  * cap_size(gen[y]) *
+            reserves_term[y, t]<= heterogenous_ramp_small_variance(ramp_up_fraction(gen[y]),inputs["Rel_TimeStep"][t], inputs["Rel_TimeStep"][ hours_before_HE(t, 1, inputs, p)])  * cap_size(gen[y]) *
                                 (EP[:vCOMMIT][y, t] - EP[:vSTART][y, t])
                                 +
                                 min(inputs["pP_Max"][y, t],
@@ -236,7 +236,7 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
         @constraint(EP, [y in THERM_COMMIT, t in 1:T],
             EP[:vP][y, hours_before_HE(t, 1, inputs,p)] - EP[:vP][y, t] - regulation_term[y, t] +
             reserves_term[y,
-            hours_before_HE(t, 1, inputs,p)]<= heterogenous_ramp_small_variance(ramp_down_fraction(gen[y]),inputs["Rel_TimeStep"][hours_before_HE(t, 1, inputs,p)]) * cap_size(gen[y]) *
+            hours_before_HE(t, 1, inputs,p)]<= heterogenous_ramp_small_variance(ramp_down_fraction(gen[y]),inputs["Rel_TimeStep"][hours_before_HE(t, 1, inputs,p)], inputs["Rel_TimeStep"][t]) * cap_size(gen[y]) *
                                     (EP[:vCOMMIT][y, t] - EP[:vSTART][y, t])
                                     -
                                     min_power(gen[y]) * cap_size(gen[y]) * EP[:vSTART][y, t]

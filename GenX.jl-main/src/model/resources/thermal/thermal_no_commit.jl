@@ -78,22 +78,17 @@ function thermal_no_commit!(EP::Model, inputs::Dict, setup::Dict)
             EP[:vP][y, hoursbefore(p, t, 1)] - EP[:vP][y, t] <=
             ramp_down_fraction(gen[y]) * EP[:eTotalCap][y]
         end)
-    elseif setup["HeterogenousTimesteps"] == 1
-        
-
+    elseif setup["HeterogenousTimesteps"] == 1        
         @constraints(EP,
             begin
-                println("DEBUGGING within thermal_no_commt.jl")
-                println("hours_before_HE(t, 1, inputs, p)", hours_before_HE(t, 1, inputs, p))
-                println("heterogenous_ramp_small_variance", heterogenous_ramp_small_variance(ramp_up_fraction(gen[y]),inputs["Rel_TimeStep"][t]))
 
                 ## Maximum ramp up between consecutive hours
                 [y in THERM_NO_COMMIT, t in 1:T],
-                EP[:vP][y, t] - EP[:vP][y, hours_before_HE(t, 1, inputs, p)] <=  heterogenous_ramp_small_variance(ramp_up_fraction(gen[y]),inputs["Rel_TimeStep"][t]) * EP[:eTotalCap][y]
+                EP[:vP][y, t] - EP[:vP][y, hours_before_HE(t, 1, inputs, p)] <=  heterogenous_ramp_small_variance(ramp_up_fraction(gen[y]),inputs["Rel_TimeStep"][t],inputs["Rel_TimeStep"][hours_before_HE(t, 1, inputs, p)]) * EP[:eTotalCap][y]
 
                 ## Maximum ramp down between consecutive hours
                 [y in THERM_NO_COMMIT, t in 1:T],
-                EP[:vP][y, hours_before_HE(t, 1, inputs, p)] - EP[:vP][y, t] <= heterogenous_ramp_small_variance(ramp_down_fraction(gen[y]),inputs["Rel_TimeStep"][hours_before_HE(t, 1, inputs,p)]) * EP[:eTotalCap][y]
+                EP[:vP][y, hours_before_HE(t, 1, inputs, p)] - EP[:vP][y, t] <= heterogenous_ramp_small_variance(ramp_down_fraction(gen[y]),inputs["Rel_TimeStep"][hours_before_HE(t, 1, inputs,p)], inputs["Rel_TimeStep"][t]) * EP[:eTotalCap][y]
             end)
     end
     

@@ -18,7 +18,6 @@ optimizer = Gurobi.Optimizer
 settings_path = GenX.get_settings_path(case)
 outputs_folder = ["", ""]
 TDRpath_homogenous = ""
-
 i=1
 
 if (mysetup["TimeDomainReduction"] == 1) && (mysetup["HeterogenousTimesteps"] == 0)
@@ -31,7 +30,13 @@ if (mysetup["TimeDomainReduction"] == 1) && (mysetup["HeterogenousTimesteps"] ==
     #Verify whether TRD files exists at TRDpath
     if !GenX.time_domain_reduced_files_exist(TDRpath)
         println("Clustering Time Series Data (Grouped)...")
-        GenX.cluster_inputs(case, settings_path, mysetup)
+        myTDRsetup = YAML.load(open(joinpath(settings_path,
+            "time_domain_reduction_settings.yml")))
+        myTDRsetup["MinPeriods"] = 8
+        myTDRsetup["MaxPeriods"] = 8
+        println("Modified the MaxPeriods and MinPeriods variables of myTDRsetup")
+        random = true
+        GenX.cluster_inputs(case, settings_path, mysetup,  -99,false; random = true, myTDRsetup_ = myTDRsetup)
         TDR_HO_to_HO(TDRpath)
     else
         println("Time Series Data Already Clustered.!")
