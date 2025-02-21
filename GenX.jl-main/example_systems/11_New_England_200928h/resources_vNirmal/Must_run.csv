@@ -1,0 +1,2 @@
+Resource,Zone,FUSION,LDS,New_Build,Existing_Cap_MW,Max_Cap_MW,Min_Cap_MW,Inv_Cost_per_MWyr,Fixed_OM_Cost_per_MWyr,Var_OM_Cost_per_MWh,Heat_Rate_MMBTU_per_MWh,Fuel,Cap_Size,Start_Cost_per_MW,Start_Fuel_MMBTU_per_MW,Reg_Max,Rsv_Max,Resource_Type,region,cluster,region.1,Can_Retire
+ror_hydro,1,0,0,0,1960.5,-1,0,6.795651831e6,430100,0.0,0.0,None,1,0,0.0,0.020833333,0.041666667,ror_hydro,NE,1,NE,0

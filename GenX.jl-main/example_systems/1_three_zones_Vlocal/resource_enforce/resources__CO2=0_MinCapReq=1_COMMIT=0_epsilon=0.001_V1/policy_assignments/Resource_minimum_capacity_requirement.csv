@@ -1,0 +1,8 @@
+Resource,Min_Cap_1,Min_Cap_2,Min_Cap_3,Min_Cap_4,Min_Cap_5,Min_Cap_6,Min_Cap_7
+MA_natural_gas_combined_cycle,1,0,0,0,0,0,0
+CT_natural_gas_combined_cycle,0,1,0,0,0,0,0
+ME_natural_gas_combined_cycle,0,0,1,0,0,0,0
+MA_solar_pv,0,0,0,1,0,0,0
+CT_onshore_wind,0,0,0,0,1,0,0
+CT_solar_pv,0,0,0,0,0,1,0
+ME_onshore_wind,0,0,0,0,0,0,1

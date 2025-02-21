@@ -1,0 +1,5 @@
+Cost_of_Demand_Curtailment_per_MW,Demand_Segment,Max_Demand_Curtailment,Rep_Periods,Sub_Weights,Timesteps_per_Rep_Period,Voll,Time_Index,Demand_MW_z1,Rep_Period,START_SUBPERIODS,INTERIOR_SUBPERIODS,Rel_TimeStep
+1.0,1.0,1.0,1.0,8736.0,8736.0,50000.0,1,10789.727,1,1,0,1
+,,,,,,,2,14781.882349823316,1,0,1,1415
+,,,,,,,3,13562.548509469685,1,0,1,6600
+,,,,,,,4,13904.351641666659,1,0,1,720

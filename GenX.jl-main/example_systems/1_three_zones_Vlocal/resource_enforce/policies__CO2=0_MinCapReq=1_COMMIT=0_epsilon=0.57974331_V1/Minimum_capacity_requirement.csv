@@ -1,0 +1,8 @@
+MinCapReqConstraint,ConstraintDescription,Min_MW
+1,MA_natural_gas_combined_cycle,0.0
+2,CT_natural_gas_combined_cycle,0.0
+3,ME_natural_gas_combined_cycle,0.0
+4,MA_solar_pv,80827.7090643725
+5,CT_onshore_wind,10000.0
+6,CT_solar_pv,46317.40604218278
+7,ME_onshore_wind,6152.980164602936
