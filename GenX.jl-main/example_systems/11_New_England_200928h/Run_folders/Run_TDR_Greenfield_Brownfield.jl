@@ -78,7 +78,7 @@ for row in eachrow(comb_df)
     myTDRsetup = YAML.load(open(joinpath(settings_path, "time_domain_reduction_settings.yml")))
     GenX.update_deprecated_tdr_inputs!(myTDRsetup)
     mysetup["TimestepsPerRepPeriod"] = time_rep_period
-    mysetup["HeterogenousTimesteps"] = 0
+    # mysetup["HeterogenousTimesteps"] = 0
     mysetup["TimeDomainReduction"] = 1
     mysetup["UCommit"] = commit
     mysetup["CO2Cap"] = CO2
@@ -86,7 +86,7 @@ for row in eachrow(comb_df)
     mysetup["SystemFolder"] = "system"
 
     ### Cluster time series inputs if necessary and if specified by the user
-    if (mysetup["TimeDomainReduction"] == 1) && (mysetup["HeterogenousTimesteps"] == 0)
+    if (mysetup["TimeDomainReduction"] == 1)
         mysetup["TimeDomainReductionFolder"] = string("TDR_results_HO", "_number_repr_period=", number_repr_period, "time_rep_period=", time_rep_period)
         println("#########################################################")
         println("TimeDomainReductionFolder", mysetup["TimeDomainReductionFolder"])
@@ -259,7 +259,7 @@ for row in eachrow(comb_df)
 
     mysetup["SystemFolder"] = "system"
     mysetup["TimeDomainReduction"] = 0
-    mysetup["HeterogenousTimesteps"] = 0
+    # mysetup["HeterogenousTimesteps"] = 0
     mysetup["ResourcesFolder"] = dir_res
     mysetup["PoliciesFolder"] = "policies"
 

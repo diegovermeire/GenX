@@ -102,18 +102,31 @@ function long_duration_storage!(EP::Model, inputs::Dict, setup::Dict)
     # Modified initial state of storage for long-duration storage - initialize wth value carried over from last period
     # Alternative to cSoCBalStart constraint which is included when not modeling operations wrapping and long duration storage
     # Note: tw_min = hours_per_subperiod*(w-1)+1; tw_max = hours_per_subperiod*w
-    @constraint(EP,
-        cSoCBalLongDurationStorageStart[w = 1:REP_PERIOD, y in STOR_LONG_DURATION],
-        EP[:vS][y,
-            hours_per_subperiod * (w - 1) + 1]==(1 - self_discharge(gen[y])) *
-                                                (EP[:vS][y, hours_per_subperiod * w] -
-                                                 vdSOC[y, w])
-                                                -
-                                                (1 / efficiency_down(gen[y]) * EP[:vP][
-            y, hours_per_subperiod * (w - 1) + 1]) +
-                                                (efficiency_up(gen[y]) * EP[:vCHARGE][
-            y, hours_per_subperiod * (w - 1) + 1]))
-
+    if !((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 1))
+        @constraint(EP,
+            cSoCBalLongDurationStorageStart[w = 1:REP_PERIOD, y in STOR_LONG_DURATION],
+            EP[:vS][y,
+                hours_per_subperiod * (w - 1) + 1]==(1 - self_discharge(gen[y])) *
+                                                    (EP[:vS][y, hours_per_subperiod * w] -
+                                                    vdSOC[y, w])
+                                                    -
+                                                    (1 / efficiency_down(gen[y]) * EP[:vP][
+                y, hours_per_subperiod * (w - 1) + 1]) +
+                                                    (efficiency_up(gen[y]) * EP[:vCHARGE][
+                y, hours_per_subperiod * (w - 1) + 1]))
+    elseif ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 1))
+        @constraint(EP,
+            cSoCBalLongDurationStorageStart[w = 1:REP_PERIOD, y in STOR_LONG_DURATION],
+            EP[:vS][y,
+                find_first_last_index_rep_period(inputs, w)[1]]==(1 - self_discharge(gen[y])) *
+                                                    (EP[:vS][y, find_first_last_index_rep_period(inputs, w)[2]] -
+                                                    vdSOC[y, w])
+                                                    -
+                                                    (1 / efficiency_down(gen[y]) * EP[:vP][
+                y, find_first_last_index_rep_period(inputs, w)[1]]) +
+                                                    (efficiency_up(gen[y]) * EP[:vCHARGE][
+                y, find_first_last_index_rep_period(inputs, w)[1]]))
+    end
     # Storage at beginning of period w = storage at beginning of period w-1 + storage built up in period w (after n representative periods)
     ## Multiply storage build up term from prior period with corresponding weight
     @constraint(EP,
@@ -130,11 +143,19 @@ function long_duration_storage!(EP::Model, inputs::Dict, setup::Dict)
 
     # Initial storage level for representative periods must also adhere to sub-period storage inventory balance
     # Initial storage = Final storage - change in storage inventory across representative period
-    @constraint(EP,
-        cSoCBalLongDurationStorageSub[y in STOR_LONG_DURATION, r in REP_PERIODS_INDEX],
-        vSOCw[y,
-            r]==EP[:vS][y, hours_per_subperiod * dfPeriodMap[r, :Rep_Period_Index]] -
-                vdSOC[y, dfPeriodMap[r, :Rep_Period_Index]])
+    if !((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 1))
+        @constraint(EP,
+            cSoCBalLongDurationStorageSub[y in STOR_LONG_DURATION, r in REP_PERIODS_INDEX],
+            vSOCw[y,
+                r]==EP[:vS][y, hours_per_subperiod * dfPeriodMap[r, :Rep_Period_Index]] -
+                    vdSOC[y, dfPeriodMap[r, :Rep_Period_Index]])
+    elseif ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 1))
+        @constraint(EP,
+            cSoCBalLongDurationStorageSub[y in STOR_LONG_DURATION, r in REP_PERIODS_INDEX],
+            vSOCw[y,
+                r]==EP[:vS][y, find_first_last_index_rep_period(inputs, dfPeriodMap[r, :Rep_Period_Index])[2]] -
+                    vdSOC[y, dfPeriodMap[r, :Rep_Period_Index]])
+    end
 
     # Capacity Reserve Margin policy
     if CapacityReserveMargin > 0

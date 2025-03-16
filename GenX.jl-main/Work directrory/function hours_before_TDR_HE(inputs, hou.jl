@@ -6,7 +6,7 @@ function hour_before_TDR_HE(inputs, hours_backward, t)
     T = last_index
 
     if hours_backward == 1
-        if inputs["START_SUBPERIODS"][t] == 1
+        if inputs["Start_Subperiods"][t] == 1
             return T
         else
             return t - 1
@@ -16,7 +16,7 @@ function hour_before_TDR_HE(inputs, hours_backward, t)
         current_index = t
 
         while backward_iteration < hours_backward
-            if inputs["START_SUBPERIODS"][current_index] == 1
+            if inputs["Start_Subperiods"][current_index] == 1
                 preceding_index = T
             else
                 preceding_index = current_index - 1
@@ -34,9 +34,10 @@ function set_hourS_before_TDR_HE(inputs, hours_backward, t)
     last_index = findlast(x -> x == inputs["Rep_Period"][t], inputs["Rep_Period"])
     T = last_index
     set_hours_before = []
+    push!(set_hours_before, t)
 
     if hours_backward == 1
-        if inputs["START_SUBPERIODS"][t] == 1
+        if inputs["Start_Subperiods"][t] == 1
             push!(set_hours_before, T)
             return set_hours_before
         else
@@ -48,7 +49,7 @@ function set_hourS_before_TDR_HE(inputs, hours_backward, t)
         current_index = t
 
         while backward_iteration < hours_backward
-            if inputs["START_SUBPERIODS"][current_index] == 1
+            if inputs["Start_Subperiods"][current_index] == 1
                 preceding_index = T
             else
                 preceding_index = current_index - 1
@@ -63,3 +64,14 @@ function set_hourS_before_TDR_HE(inputs, hours_backward, t)
     end
 end
 
+function find_first_last_index_rep_period(inputs, current_rep_period)
+    indexes = []
+    last_index = findlast(x -> x == current_rep_period, inputs["Rep_Period"])
+    first_index = findfirst(x -> x == current_rep_period, inputs["Rep_Period"])
+    push!(indexes, first_index)
+    push!(indexes, last_index)
+
+    if ((inputs["Start_Subperiods"][last_index] == 0) && (inputs["Start_Subperiods"][first_index] == 1))
+        return indexes
+    end
+end

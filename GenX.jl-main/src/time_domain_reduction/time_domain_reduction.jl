@@ -696,9 +696,11 @@ function cluster_inputs(inpath,
     mysetup_local = copy(mysetup)
     # If ParameterScale =1 then make it zero, since clustered inputs will be scaled prior to generating model
     mysetup_local["ParameterScale"] = 0  # Performing cluster and report outputs in user-provided units
+    mysetup_local["HeterogenousTimesteps"] = 0
 
     # Define another local version of setup such that Multi-Stage Non-Concatentation TDR can iteratively read in the raw data
     mysetup_MS = copy(mysetup)
+    mysetup_MS["HeterogenousTimesteps"] = 0
     mysetup_MS["TimeDomainReduction"] = 0
     mysetup_MS["DoNotReadPeriodMap"] = 1
     mysetup_MS["ParameterScale"] = 0
@@ -758,6 +760,14 @@ function cluster_inputs(inpath,
         if v
             println("Not MultiStage")
         end
+
+        ##################### DEBUGGING #####################
+        println("DEBUGGING in time_domain_reduction.jl")
+        println("inpath", inpath)
+        println("mysetup_local_HE", mysetup_local["HeterogenousTimesteps"])
+        println("mysetup_local_TDR", mysetup_local["TimeDomainReduction"])
+        #####################################################
+
         myinputs = load_inputs(mysetup_local, inpath)
         RESOURCE_ZONES = myinputs["RESOURCE_ZONES"]
         RESOURCES = myinputs["RESOURCE_NAMES"]

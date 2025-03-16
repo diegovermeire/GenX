@@ -22,8 +22,7 @@ capacity_path = joinpath(path_TDR_HE_DBSCAN, "Generators_variability.csv")
 df_demand = CSV.read(demand_path, DataFrame)
 
 input = Dict()
-input["START_SUBPERIODS"] = df_demand[!, "START_SUBPERIODS"]
-input["INTERIOR_SUBPERIODS"] = df_demand[!, "INTERIOR_SUBPERIODS"]
+input["Start_Subperiods"] = df_demand[!, "START_SUBPERIODS"]
 input["Rep_Period"] = df_demand[!, "Rep_Period"]
 input["Rel_TimeStep"] = df_demand[!, "Rel_TimeStep"]
 
@@ -31,6 +30,20 @@ last_index = findlast(x -> x == input["Rep_Period"][5], input["Rep_Period"])
 """
 Testing hour_before_TDR_HE
 """
+
+function find_first_last_index_rep_period(inputs, current_rep_period)
+    indexes = []
+    last_index = findlast(x -> x == current_rep_period, inputs["Rep_Period"])
+    first_index = findfirst(x -> x == current_rep_period, inputs["Rep_Period"])
+    push!(indexes, first_index)
+    push!(indexes, last_index)
+
+    if ((inputs["Start_Subperiods"][last_index] == 0) && (inputs["Start_Subperiods"][first_index] == 1))
+        return indexes
+    end
+end
+
+
 # Compute hours_before for hours_backward = 1
 hour_before_TDR_HE(input, 1, 1)
 hour_before_TDR_HE(input, 1, 2)
@@ -82,3 +95,4 @@ set_hourS_before_TDR_HE(input, 1416, 3)
 set_hourS_before_TDR_HE(input, 8015, 4)
 set_hourS_before_TDR_HE(input, 8016, 4)
 
+find_first_last_index_rep_period(input, 2)[2]

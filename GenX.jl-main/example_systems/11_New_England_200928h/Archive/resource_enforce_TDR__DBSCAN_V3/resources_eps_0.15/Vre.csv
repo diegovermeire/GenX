@@ -1,0 +1,5 @@
+Resource,Zone,FUSION,LDS,Num_VRE_Bins,New_Build,Existing_Cap_MW,Max_Cap_MW,Min_Cap_MW,Inv_Cost_per_MWyr,Fixed_OM_Cost_per_MWyr,Var_OM_Cost_per_MWh,Heat_Rate_MMBTU_per_MWh,Fuel,Cap_Size,Start_Cost_per_MW,Start_Fuel_MMBTU_per_MW,Reg_Max,Rsv_Max,Resource_Type,region,cluster,region.1,Can_Retire
+solar_pv,1,0,0,1,1,0.0,1.668864526098989e-13,1.668864526098989e-13,1.098265561e6,299000,0.0,0.0,None,1,0,0.0,0.083333333,0.166666667,solar_pv,NE,1,NE,1
+onshore_wind,1,0,0,1,1,0.0,4.053671784727178e-14,4.053671784727178e-14,1.590252707e6,529000,0.0,0.0,None,1,0,0.0,0.083333333,0.166666667,onshore_wind,NE,1,NE,1
+fixed_offshore_wind,1,0,0,1,1,0.0,9.153032618268763e-15,9.153032618268763e-15,4.52382883e6,1633000,0.0,0.0,None,1,0,0.0,0.083333333,0.166666667,fixed_offshore_wind,NE,1,NE,1
+float_offshore_wind,1,0,0,1,1,0.0,8.099318074885059e-15,8.099318074885059e-15,7.317498406e6,1403000,0.0,0.0,None,1,0,0.0,0.083333333,0.166666667,floating_offshore_wind,NE,1,NE,1

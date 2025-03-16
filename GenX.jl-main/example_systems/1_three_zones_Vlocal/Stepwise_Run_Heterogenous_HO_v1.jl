@@ -12,15 +12,15 @@ path = dirname(@__FILE__)
 genx_settings = GenX.get_settings_path(path, "genx_settings.yml") # Settings YAML file path
 writeoutput_settings = GenX.get_settings_path(path, "output_settings.yml") # Write-output settings YAML file path
 mysetup = GenX.configure_settings(genx_settings, writeoutput_settings) # mysetup dictionary stores settings and GenX-specific parameters
-mysetup["TimeDomainReduction"] == 1
-mysetup["HeterogenousTimesteps"] == 0
+mysetup["TimeDomainReduction"] = 1
+mysetup["HeterogenousTimesteps"] = 1
 
 case= path
 optimizer = Gurobi.Optimizer
 settings_path = GenX.get_settings_path(case)
 outputs_folder = ["", ""]
-TDRpath_homogenous = ""
-i=1
+TDRpath_homogenous = raw"C:\Users\Diego\GenX\GenX.jl-main\example_systems\1_three_zones_Vlocal\TDR_results_HO"
+# i=1
 
 if (mysetup["TimeDomainReduction"] == 1) && (mysetup["HeterogenousTimesteps"] == 0)
     mysetup["TimeDomainReductionFolder"] = "TDR_results"
@@ -92,8 +92,6 @@ println("Solving Model")
 EP, solve_time = GenX.solve_model(EP, mysetup)
 myinputs["solve_time"] = GenX.solve_time # Store the model solve time in myinputs
 
-myinputs["T"]
-
 println("Writing Outputss")
 outputs_path = GenX.get_default_output_folder(case)
 outputs_path = replace(outputs_path, '\\' => '/')
@@ -109,11 +107,13 @@ else
     outputs_path = choose_output_dir(outputs_path)
 end
 
-outputs_folder[i] = outputs_path
+# outputs_folder[i] = outputs_path
 elapsed_time = @elapsed outputs_path = GenX.write_outputs(EP,
     outputs_path,
     mysetup,
     myinputs)
 println("Time elapsed for writing is")
 println(elapsed_time)
+
+compare_results(raw"C:\Users\Diego\GenX\GenX.jl-main\example_systems\1_three_zones_Vlocal\results_6", raw"C:\Users\Diego\GenX\GenX.jl-main\example_systems\1_three_zones_Vlocal\results_7", raw"C:\Users\Diego\GenX\GenX.jl-main\example_systems\1_three_zones_Vlocal")
 

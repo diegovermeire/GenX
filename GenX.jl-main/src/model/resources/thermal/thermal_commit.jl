@@ -179,7 +179,7 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
             EP[:vCOMMIT][y, t] ==
             EP[:vCOMMIT][y, hoursbefore(p, t, 1)] + EP[:vSTART][y, t] - EP[:vSHUT][y, t]
         end)
-    elseif setup["HeterogenousTimesteps"] == 1
+    elseif ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 0))
         # Commitment state constraint linking startup and shutdown decisions (Constraint #4)
         @constraints(EP,
             begin
@@ -190,6 +190,14 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
                 [y in THERM_COMMIT, t in 2:T],
                 EP[:vCOMMIT][y, t] ==
                 EP[:vCOMMIT][y, t-1] + EP[:vSTART][y, t] - EP[:vSHUT][y, t]
+            end)
+    elseif ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 1))
+        # Commitment state constraint linking startup and shutdown decisions (Constraint #4)
+        @constraints(EP,
+            begin
+                [y in THERM_COMMIT, t in 1:T],
+                EP[:vCOMMIT][y, t] ==
+                EP[:vCOMMIT][y, hour_before_TDR_HE(inputs, 1, t)] + EP[:vSTART][y, t] - EP[:vSHUT][y, t]
             end)
     end
     ### Maximum ramp up and down between consecutive hours (Constraints #5-6)
@@ -209,7 +217,8 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
                              cap_size(gen[y]) * EP[:vSTART][y, t]
                              -
                              min_power(gen[y]) * cap_size(gen[y]) * EP[:vSHUT][y, t])
-    elseif setup["HeterogenousTimesteps"] == 1
+    # Case where HO raw data is turned into HE data using DBSCAN                          
+    elseif ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 0))
         @constraint(EP, [y in THERM_COMMIT],
             EP[:vP][y, 1] - EP[:vP][y, T] + regulation_term[y, 1] +
             reserves_term[y, 1]<= heterogenous_ramp_small_variance(ramp_up_fraction(gen[y]),inputs["Rel_TimeStep"][1], inputs["Rel_TimeStep"][T])  * cap_size(gen[y]) *
@@ -231,6 +240,19 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
                                 cap_size(gen[y]) * EP[:vSTART][y, t]
                                 -
                                 min_power(gen[y]) * cap_size(gen[y]) * EP[:vSHUT][y, t])
+    # Case where HO TDR data is turned into HE data data using DBSCAN                              
+    elseif ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 1))
+        @constraint(EP, [y in THERM_COMMIT, t in 1:T],
+            EP[:vP][y, t] - EP[:vP][y, hour_before_TDR_HE(inputs, 1, t)] + regulation_term[y, t] +
+            reserves_term[y, t]<= heterogenous_ramp_small_variance(ramp_up_fraction(gen[y]),inputs["Rel_TimeStep"][t], inputs["Rel_TimeStep"][hour_before_TDR_HE(inputs, 1, t)])*cap_size(gen[y])*
+                                (EP[:vCOMMIT][y, t] - EP[:vSTART][y, t])
+                                +
+                                min(inputs["pP_Max"][y, t],
+                                    max(min_power(gen[y]), ramp_up_fraction(gen[y]))) *
+                                cap_size(gen[y]) * EP[:vSTART][y, t]
+                                -
+                                min_power(gen[y]) * cap_size(gen[y]) * EP[:vSHUT][y, t])
+                            
     end
 
     
@@ -247,7 +269,7 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
                                    min(inputs["pP_Max"][y, t],
                                        max(min_power(gen[y]), ramp_down_fraction(gen[y]))) *
                                    cap_size(gen[y]) * EP[:vSHUT][y, t])
-    elseif setup["HeterogenousTimesteps"] == 1
+    elseif ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 0))
         @constraint(EP, [y in THERM_COMMIT],
         EP[:vP][y, T] - EP[:vP][y, 1] - regulation_term[y, 1] +
         reserves_term[y, T]<= heterogenous_ramp_small_variance(ramp_down_fraction(gen[y]),inputs["Rel_TimeStep"][T], inputs["Rel_TimeStep"][1]) * cap_size(gen[y]) *
@@ -262,6 +284,18 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
         @constraint(EP, [y in THERM_COMMIT, t in 2:T],
             EP[:vP][y, t-1] - EP[:vP][y, t] - regulation_term[y, t] +
             reserves_term[y, t-1]<= heterogenous_ramp_small_variance(ramp_down_fraction(gen[y]),inputs["Rel_TimeStep"][t-1], inputs["Rel_TimeStep"][t]) * cap_size(gen[y]) *
+                                    (EP[:vCOMMIT][y, t] - EP[:vSTART][y, t])
+                                    -
+                                    min_power(gen[y]) * cap_size(gen[y]) * EP[:vSTART][y, t]
+                                    +
+                                    min(inputs["pP_Max"][y, t],
+                                        max(min_power(gen[y]), ramp_down_fraction(gen[y]))) *
+                                    cap_size(gen[y]) * EP[:vSHUT][y, t])
+
+    elseif ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 1))      
+        @constraint(EP, [y in THERM_COMMIT, t in 1:T],
+            EP[:vP][y, hour_before_TDR_HE(inputs, 1, t)] - EP[:vP][y, t] - regulation_term[y, t] +
+            reserves_term[y, hour_before_TDR_HE(inputs, 1, t)]<= heterogenous_ramp_small_variance(ramp_down_fraction(gen[y]),inputs["Rel_TimeStep"][hour_before_TDR_HE(inputs, 1, t)], inputs["Rel_TimeStep"][t]) * cap_size(gen[y]) *
                                     (EP[:vCOMMIT][y, t] - EP[:vSTART][y, t])
                                     -
                                     min_power(gen[y]) * cap_size(gen[y]) * EP[:vSTART][y, t]
@@ -304,7 +338,7 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
             EP[:eTotalCap][y] / cap_size(gen[y]) -
             EP[:vCOMMIT][y,
                 t]>=sum(EP[:vSHUT][y, u] for u in hoursbefore(p, t, 0:(Down_Time[y] - 1))))
-    elseif setup["HeterogenousTimesteps"] == 1
+    elseif ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 0))
         Up_Time = zeros(Int, G)
         Up_Time[THERM_COMMIT] .= Int.(floor.(up_time.(gen[THERM_COMMIT])))
         @constraint(EP, [y in THERM_COMMIT, t in 1:T],
@@ -317,6 +351,19 @@ function thermal_commit!(EP::Model, inputs::Dict, setup::Dict)
             EP[:eTotalCap][y] / cap_size(gen[y]) -
             EP[:vCOMMIT][y,
                 t]>=sum(EP[:vSHUT][y, u] for u in (iterate_backward(inputs, t, Down_Time[y]))))
+    elseif ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 1))
+        Up_Time = zeros(Int, G)
+        Up_Time[THERM_COMMIT] .= Int.(floor.(up_time.(gen[THERM_COMMIT])))
+        @constraint(EP, [y in THERM_COMMIT, t in 1:T],
+            EP[:vCOMMIT][y,
+                t]>=sum(EP[:vSTART][y, u] for u in set_hourS_before_TDR_HE(inputs, Up_Time[y]-1, t)))
+
+        Down_Time = zeros(Int, G)
+        Down_Time[THERM_COMMIT] .= Int.(floor.(down_time.(gen[THERM_COMMIT])))
+        @constraint(EP, [y in THERM_COMMIT, t in 1:T],
+            EP[:eTotalCap][y] / cap_size(gen[y]) -
+            EP[:vCOMMIT][y,
+                t]>=sum(EP[:vSHUT][y, u] for u in set_hourS_before_TDR_HE(inputs, Up_Time[y]-1, t)))
     end
 
     ## END Constraints for thermal units subject to integer (discrete) unit commitment decisions

@@ -1,0 +1,5 @@
+natural_gas,natural_gas_ccs,nuclear,solar_pv,onshore_wind,fixed_offshore_wind,float_offshore_wind,battery,Time_Index
+1.0,1.0,1.0,0.0,0.4379,0.7539,0.7539,1.0,1
+1.0,1.0,1.0,0.765513,0.8802,0.915,0.915,1.0,2
+1.0,1.0,1.0,0.904154,0.8852,0.9187,0.9187,1.0,3
+1.0,1.0,1.0,0.537109,0.8359,0.9155,0.9155,1.0,4

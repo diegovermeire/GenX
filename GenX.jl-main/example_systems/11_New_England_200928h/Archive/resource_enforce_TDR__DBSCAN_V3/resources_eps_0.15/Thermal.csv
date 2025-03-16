@@ -1,0 +1,4 @@
+Resource,Zone,Model,FUSION,LDS,New_Build,Existing_Cap_MW,Max_Cap_MW,Min_Cap_MW,Inv_Cost_per_MWyr,Fixed_OM_Cost_per_MWyr,Var_OM_Cost_per_MWh,Heat_Rate_MMBTU_per_MWh,Fuel,Cap_Size,Start_Cost_per_MW,Start_Fuel_MMBTU_per_MW,Up_Time,Down_Time,Ramp_Up_Percentage,Ramp_Dn_Percentage,Min_Power,Reg_Max,Rsv_Max,Resource_Type,region,cluster,region.1,Can_Retire
+natural_gas,1,1,0,0,1,0,23652.779668052008,23652.779668052008,1.91e6,552000,1.61,6.196,NG,1,0,111.334375,0,0,1,1,0.25,0.053333333,0.106666667,natural_gas,NE,1,NE,1
+natural_gas_ccs,1,1,0,0,1,0,6.683585625605762e-14,6.683585625605762e-14,2.8e6,897000,3.32,7.007,NGCCS,1,0,73.80969101,0,0,1,1,0.5,0.053333333,0.106666667,natural_gas_ccs,NE,1,NE,1
+nuclear,1,1,0,0,1,0,9.129576133561505e-15,9.129576133561505e-15,1.06e7,3496000,2.0,10.45,nuclear_fuel,1000,0,0.0,0,0,1,1,0.5,0.020833333,0.041666667,nuclear_CF,NE,1,NE,1

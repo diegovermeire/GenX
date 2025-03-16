@@ -23,6 +23,7 @@ function HO_TDR_to_HE_DBSCAN(epsilon_values, TDR_HO_path, path_to_save)
     path_demand = joinpath(TDR_HO_path, p_demand)
     path_fuel   = joinpath(TDR_HO_path, p_fuel)
     path_CF     = joinpath(TDR_HO_path, p_CF)
+    path_TDR_period_map = joinpath(TDR_HO_path, "Period_map.csv")
 
     df_demand = CSV.read(path_demand, DataFrame)
     df_fuel   = CSV.read(path_fuel, DataFrame)
@@ -262,11 +263,14 @@ function HO_TDR_to_HE_DBSCAN(epsilon_values, TDR_HO_path, path_to_save)
         path_fuel_eps = joinpath(path_eps, "Fuels_data.csv")
         path_CF_eps   = joinpath(path_eps, "Generators_variability.csv")
         path_DBSCAN_stat = joinpath(path_eps, "DBSCAN_stats.csv")
+        path_period_map = joinpath(path_eps, "Period_map.csv")
 
         CSV.write(path_demand_eps, df_demand_eps)
         CSV.write(path_fuel_eps, df_fuel_eps)
         CSV.write(path_CF_eps, df_CF_eps)
         CSV.write(path_DBSCAN_stat, df_DBSCAN_stat_eps[eps])
+        cp(path_TDR_period_map, path_period_map, force=true)
+
     end
 
     println("DBSCAN processing complete!")

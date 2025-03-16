@@ -1,0 +1,5 @@
+Resource,Zone,Num_VRE_Bins,New_Build,Can_Retire,Existing_Cap_MW,Max_Cap_MW,Min_Cap_MW,Inv_Cost_per_MWyr,Fixed_OM_Cost_per_MWyr,Var_OM_Cost_per_MWh,Reg_Max,Rsv_Max,Reg_Cost,Rsv_Cost,region,cluster
+MA_solar_pv,1,1,1,0,0,87295.00884144902,87295.00884144902,85300,18760,0.0,0,0,0,0,MA,1
+CT_onshore_wind,2,1,1,0,0,16106.134952469965,16106.134952469965,97200,43205,0.1,0,0,0,0,CT,1
+CT_solar_pv,2,1,1,0,0,2986.384039758232,2986.384039758232,85300,18760,0.0,0,0,0,0,CT,1
+ME_onshore_wind,3,1,1,0,0,8579.130273298832,8579.130273298832,97200,43205,0.1,0,0,0,0,ME,1

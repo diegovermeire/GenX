@@ -1,0 +1,4 @@
+Resource,Fuel,Zone,AnnualSumCosts
+natural_gas,NG,1,1.1504985248722943e-12
+natural_gas_ccs,NGCCS,1,0.0
+nuclear,nuclear_fuel,1,0.0

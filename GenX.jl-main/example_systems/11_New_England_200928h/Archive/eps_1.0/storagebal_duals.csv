@@ -1,0 +1,6 @@
+Resource,natural_gas,natural_gas_ccs,nuclear,solar_pv,onshore_wind,fixed_offshore_wind,float_offshore_wind,battery
+Zone,1,1,1,1,1,1,1,1
+t1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-2751.718634015284
+t2,0.0,0.0,0.0,0.0,0.0,0.0,0.0,62.6511882720383
+t3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,12.068524834101737
+t4,0.0,0.0,0.0,0.0,0.0,0.0,0.0,16.368607528356854

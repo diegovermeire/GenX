@@ -131,8 +131,7 @@ function storage_all!(EP::Model, inputs::Dict, setup::Dict)
                 (efficiency_up(gen[y]) * EP[:vCHARGE][y, t]) -
                 (self_discharge(gen[y]) * EP[:vS][y, t - 1])
             end)
-    elseif setup["HeterogenousTimesteps"] == 1
-
+    elseif (setup["HeterogenousTimesteps"] == 1)
         @constraint(EP,
         cSoCBalStart[t in START_SUBPERIODS, y in CONSTRAINTSET],
         EP[:vS][y,t]== 
@@ -212,7 +211,7 @@ function storage_all!(EP::Model, inputs::Dict, setup::Dict)
                     EP[:vS][y, hoursbefore(hours_per_subperiod, t, 1)] *
                     efficiency_down(gen[y])
                 end)
-            elseif setup["HeterogenousTimesteps"] == 1
+            elseif ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 0))
                 @constraints(EP,
                     begin                        
                         [y in STOR_ALL, t = 1:T], EP[:vP][y, t] <= EP[:eTotalCap][y]
@@ -225,6 +224,16 @@ function storage_all!(EP::Model, inputs::Dict, setup::Dict)
                         [y in STOR_ALL],
                         EP[:vP][y, 1] * inputs["Rel_TimeStep"][1] <=
                         EP[:vS][y,T] *
+                        efficiency_down(gen[y])
+                    end)
+            elseif ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 1))
+                @constraints(EP,
+                    begin                        
+                        [y in STOR_ALL, t = 1:T], EP[:vP][y, t] <= EP[:eTotalCap][y]
+
+                        [y in STOR_ALL, t = 1:T],
+                        EP[:vP][y, t] * inputs["Rel_TimeStep"][t] <=
+                        EP[:vS][y, hour_before_TDR_HE(inputs, 1, t)] *
                         efficiency_down(gen[y])
                     end)
             end 

@@ -55,15 +55,11 @@ function load_demand_data!(setup::Dict, path::AbstractString, inputs::Dict)
 
     ############### Heterogenous Timesteps ###############
     #Import 
-    if setup["HeterogenousTimesteps"] == 1
+    if ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 0))
         inputs["REP_PERIOD"] = convert(Int16, as_vector(:Rep_Periods)[1])
         inputs["Rel_TimeStep"] = collect(skipmissing(demand_in[:, "Rel_TimeStep"]))
 
-        if setup["TimeDomainReduction"] == 1
-            inputs["omega"] = demand_in[:, "omega"]  # Access columns in Julia using `:` for rows
-        elseif setup["TimeDomainReduction"] == 0
-            inputs["omega"] = inputs["Rel_TimeStep"]
-        end
+        inputs["omega"] = inputs["Rel_TimeStep"]
         inputs["hours_per_subperiod"] = convert(Int64, as_vector(:Timesteps_per_Rep_Period)[1])
         inputs["H"] = convert(Int64, as_vector(:Timesteps_per_Rep_Period)[1])
 
@@ -100,6 +96,24 @@ function load_demand_data!(setup::Dict, path::AbstractString, inputs::Dict)
         inputs["START_SUBPERIODS"] = 1
         inputs["INTERIOR_SUBPERIODS"] = collect(2:1:T)
 
+    elseif ((setup["HeterogenousTimesteps"] == 1) && (setup["TimeDomainReduction"] == 1))
+        
+        inputs["REP_PERIOD"] = convert(Int16, as_vector(:Rep_Periods)[1])
+        inputs["Rel_TimeStep"] = collect(skipmissing(demand_in[:, "Rel_TimeStep"]))
+        inputs["hours_per_subperiod"] = convert(Int64, as_vector(:Timesteps_per_Rep_Period)[1])
+        inputs["Start_Subperiods"] = collect(skipmissing(demand_in[:, "START_SUBPERIODS"]))
+        inputs["Interior_Subperiods"] = collect(skipmissing(demand_in[:, "INTERIOR_SUBPERIODS"]))
+        inputs["Rep_Period"] = collect(skipmissing(demand_in[:, "Rep_Period"]))
+        inputs["hours_per_subperiod"] = convert(Int64, as_vector(:Timesteps_per_Rep_Period)[1])
+
+        inputs["omega"] = [inputs["Weights"][rp] * rel_t / inputs["hours_per_subperiod"] 
+                   for (rp, rel_t) in zip(inputs["Rep_Period"], inputs["Rel_TimeStep"])]
+
+
+        inputs["H"] = convert(Int64, as_vector(:Timesteps_per_Rep_Period)[1])
+
+        inputs["START_SUBPERIODS"] = findall(x -> x != 0, inputs["Start_Subperiods"])
+        inputs["INTERIOR_SUBPERIODS"] = findall(x -> x != 0, inputs["Interior_Subperiods"])
     end
     ######################################################
 
