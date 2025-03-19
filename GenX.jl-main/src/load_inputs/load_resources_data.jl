@@ -290,6 +290,9 @@ This function takes a DataFrame `resource_in` and a GenX `ResourceType` type, an
 - `resources::Vector{ResourceType}`: An array of resources of the specified type.
 """
 function create_resources_sametype(resource_in::DataFrame, ResourceType)
+
+    # println("DEBUGGING line 294 of load_resources_data")
+    # println(resource_in, ResourceType)
     # convert dataframe to array of resources of correct type
     resources::Vector{ResourceType} = ResourceType.(dataframerow_to_dict.(eachrow(resource_in)))
     return resources
@@ -326,9 +329,7 @@ function create_resource_array(resource_folder::AbstractString,
             # compute indices for resources of a given type and add them to dataframe
             resources_indices = compute_resource_indices(resource_in, resource_id_offset)
             add_id_to_resource_df!(resource_in, resources_indices)
-            println("DEBugging in load_ressources_data.jl line 332")
-            println("Ressource_in", resource_in)
-            println("resource_type", resource_type)
+
             resources_same_type = create_resources_sametype(resource_in, resource_type)
             push!(resources, resources_same_type)
             # update id offset for next type of resources
